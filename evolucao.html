@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UN INFO Cabo Verde — Evolution</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#F0F4F9;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1A2C3D;line-height:1.4;}
+  .top-bar{background:#003366;color:white;padding:8px clamp(14px,3vw,40px);font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .top-bar a{color:white;text-decoration:none;font-weight:600;}
+  .lang-toggle{display:flex;gap:4px;}
+  .lang-btn{background:transparent;border:1px solid rgba(255,255,255,0.35);color:rgba(255,255,255,0.7);padding:3px 10px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:600;}
+  .lang-btn.active{background:white;color:#003366;border-color:white;}
+  .main-header{background:white;padding:16px clamp(14px,3vw,40px);border-bottom:1px solid #E0E7ED;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;}
+  .main-header h1{font-size:clamp(18px,2.2vw,24px);color:#003366;}
+  .main-header .sub{font-size:12px;color:#4A627A;}
+  .badge-un{background:#00A1DE;padding:3px 12px;border-radius:24px;font-size:12px;font-weight:600;color:white;}
+  .sdg-strip{display:flex;height:5px;width:100%;}
+  .sdg-strip span{flex:1;}
+  main{width:min(100%,1680px);margin:0 auto;padding:clamp(14px,2.4vw,32px) clamp(14px,3vw,40px);}
+  .filters{background:white;border-radius:16px;padding:clamp(14px,2vw,20px);margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.03);display:flex;flex-wrap:wrap;gap:14px 18px;align-items:flex-end;border:1px solid #E9EDF2;}
+  .filter-group{flex:1 1 170px;min-width:0;}
+  .filter-group label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#5F7F9E;margin-bottom:6px;display:block;}
+  .filter-group select{width:100%;padding:9px 13px;border-radius:10px;border:1px solid #CED5DE;background:white;font-size:13px;color:#1A2C3D;}
+  .btn{background:#00A1DE;border:none;padding:9px 18px;border-radius:40px;color:white;font-weight:600;cursor:pointer;display:inline-flex;gap:7px;align-items:center;font-size:13px;}
+  .btn:hover{background:#0082B3;}
+  .hero{background:linear-gradient(120deg,#003366,#0063A6);color:white;border-radius:20px;padding:clamp(18px,3vw,32px);margin-bottom:20px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;align-items:center;}
+  .hero h2{font-size:clamp(20px,2.6vw,30px);}
+  .hero .meta{font-size:13px;opacity:.9;margin-top:6px;}
+  .banner{border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;display:flex;gap:10px;align-items:flex-start;}
+  .banner.warn{background:#FFF4D6;border:1px solid #F2C94C;color:#6B4E00;}
+  .banner.info{background:#E6F4FA;border:1px solid #9ED3EA;color:#0B4F6C;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:20px;}
+  .card{background:white;border-radius:16px;padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.03);border:1px solid #E9EDF2;}
+  .card .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#5F7F9E;}
+  .card .val{font-size:clamp(22px,2.4vw,30px);font-weight:800;color:#003366;margin:6px 0 2px;}
+  .card .base{font-size:12px;color:#5C6F87;}
+  .delta{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:12px;margin-top:6px;}
+  .delta.up{background:#E3F4E8;color:#1E7B3A;} .delta.down{background:#FDE7E7;color:#B42318;} .delta.flat{background:#EEF1F5;color:#5C6F87;}
+  .panel{background:white;border-radius:16px;padding:clamp(16px,2vw,24px);box-shadow:0 2px 8px rgba(0,0,0,0.03);border:1px solid #E9EDF2;margin-bottom:20px;}
+  .panel h3{font-size:16px;color:#003366;margin-bottom:4px;display:flex;gap:8px;align-items:center;}
+  .panel .hint{font-size:12px;color:#5C6F87;margin-bottom:14px;}
+  .chart-box{position:relative;height:320px;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{background:#F4F7FB;color:#3B5470;text-align:left;font-weight:700;padding:9px 10px;border-bottom:2px solid #DDE4EC;white-space:nowrap;}
+  td{padding:8px 10px;border-bottom:1px solid #EEF1F5;vertical-align:top;}
+  td.num,th.num{text-align:right;white-space:nowrap;}
+  tr.grp td{background:#EAF3FA;font-weight:700;color:#003366;}
+  .chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;margin:1px 3px 1px 0;white-space:nowrap;}
+  .chip.g{background:#E3F4E8;color:#1E7B3A;} .chip.r{background:#FDE7E7;color:#B42318;} .chip.a{background:#FFF4D6;color:#8A6100;} .chip.b{background:#E6F4FA;color:#0B4F6C;} .chip.n{background:#EEF1F5;color:#5C6F87;}
+  .summary-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+  .pill{background:#F4F7FB;border-radius:30px;padding:6px 14px;font-size:12.5px;color:#1E3A5F;}
+  .pill strong{color:#003366;}
+  .muted{color:#7A8CA0;}
+  .print-only{display:none;}
+  footer{font-size:11px;color:#7A8CA0;text-align:center;padding:20px;}
+  @media print{
+    @page{size:A4;margin:12mm;}
+    body{background:white;}
+    .no-print{display:none!important;}
+    .print-only{display:block;}
+    .panel,.card,.hero{box-shadow:none;break-inside:avoid;}
+    .hero{background:#003366!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .chip,.delta,th,tr.grp td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .chart-box{height:240px;}
+    main{padding:0;}
+    .table-wrap{overflow:visible;}
+  }
+</style>
+</head>
+<body>
+<div class="top-bar no-print">
+  <a href="./"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="back">Back to dashboard</span></a>
+  <div class="lang-toggle"><button class="lang-btn" data-lang="en">EN</button><button class="lang-btn" data-lang="pt">PT</button></div>
+</div>
+<div class="main-header">
+  <div>
+    <h1><i class="fa-solid fa-chart-line"></i> <span data-i18n="title">UN INFO — Evolution between exports</span></h1>
+    <div class="sub">UNCF Cabo Verde 2023–2027 · <span data-i18n="subtitle">What changed in UN INFO since the previous update (AWP 2026)</span></div>
+  </div>
+  <span class="badge-un">UN INFO</span>
+</div>
+<div class="sdg-strip" id="sdgStrip"></div>
+
+<main>
+  <div class="filters no-print">
+    <div class="filter-group"><label data-i18n="fBase">Compare from</label><select id="fBase"></select></div>
+    <div class="filter-group"><label data-i18n="fTarget">To</label><select id="fTarget"></select></div>
+    <div class="filter-group"><label data-i18n="fSP">Strategic priority</label><select id="fSP"></select></div>
+    <div class="filter-group"><label data-i18n="fOutcome">Outcome</label><select id="fOutcome"></select></div>
+    <div class="filter-group"><label data-i18n="fAgency">Agency</label><select id="fAgency"></select></div>
+    <div class="filter-group"><label data-i18n="fFocal">Focal point</label><select id="fFocal"></select></div>
+    <div><button class="btn" id="btnPdf"><i class="fa-solid fa-file-pdf"></i> <span data-i18n="pdf">Generate PDF</span></button></div>
+  </div>
+
+  <div class="hero">
+    <div>
+      <h2 id="heroTitle">—</h2>
+      <div class="meta" id="heroMeta">—</div>
+    </div>
+    <div class="meta" id="heroScope"></div>
+  </div>
+
+  <div id="banners"></div>
+
+  <div class="cards" id="kpis"></div>
+
+  <div class="panel">
+    <h3><i class="fa-solid fa-chart-column"></i> <span data-i18n="tlTitle">Evolution over time (AWP 2026)</span></h3>
+    <div class="hint" data-i18n="tlHint">Available resources and expenditure for 2026 at each export, with the execution rate.</div>
+    <div class="chart-box"><canvas id="tlChart"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h3><i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="staleTitle">Sub-outputs without movement — action list</span></h3>
+    <div class="hint" id="staleHint"></div>
+    <div class="summary-row" id="staleSummary"></div>
+    <div class="table-wrap"><table id="staleTable"></table></div>
+  </div>
+
+  <div class="panel">
+    <h3><i class="fa-solid fa-arrows-rotate"></i> <span data-i18n="chgTitle">Sub-outputs updated</span></h3>
+    <div class="hint" id="chgHint"></div>
+    <div class="summary-row" id="chgSummary"></div>
+    <div class="table-wrap"><table id="chgTable"></table></div>
+  </div>
+
+  <div class="panel">
+    <h3><i class="fa-solid fa-list-check"></i> <span data-i18n="indTitle">Indicators</span></h3>
+    <div class="hint" id="indHint"></div>
+    <div class="summary-row" id="indSummary"></div>
+    <div class="table-wrap"><table id="indTable"></table></div>
+  </div>
+</main>
+<footer><span data-i18n="foot">MY UN INFO · UNCF Cabo Verde 2023–2027 · Source: UN INFO exports stored in the "historico" folder</span> · <span id="footFiles"></span></footer>
+
+<script>
+/* ==========================================================================
+   EVOLUTION PAGE
+   Reads every export kept in historico/AAAA-MM-DD/ (listed via the public
+   GitHub API, falling back to historico/manifest.json) and compares two dates.
+   Each CSV is identified by its columns, like the main dashboard:
+     ID + "2026 Available"                 -> sub-outputs
+     indicators + baseline                 -> indicators
+     3-id + 5-1-agency-abbreviation        -> funding by agency
+     Entity type + Available resources     -> aggregates (SP / outcome / output)
+   The main page (index.html) and its automatic loading are not touched.
+   ========================================================================== */
+const YEAR = 2026;
+const SDG = ['#E5243B','#DDA63A','#4C9F38','#C5192D','#FF3A21','#26BDE2','#FCC30B','#A21942','#FD6925','#DD1367','#FD9D24','#BF8B2E','#3F7E44','#0A97D9','#56C02B','#00689D','#19486A'];
+document.getElementById('sdgStrip').innerHTML = SDG.map(c=>`<span style="background:${c}"></span>`).join('');
+
+const I18N = {
+  en:{back:'Back to dashboard',title:'UN INFO — Evolution between exports',subtitle:'What changed in UN INFO since the previous update (AWP 2026)',
+    fBase:'Compare from',fTarget:'To',fSP:'Strategic priority',fOutcome:'Outcome',fAgency:'Agency',fFocal:'Focal point',pdf:'Generate PDF',all:'All',
+    tlTitle:'Evolution over time (AWP 2026)',tlHint:'Available resources and expenditure for 2026 at each export, with the execution rate.',
+    staleTitle:'Sub-outputs without movement — action list',chgTitle:'Sub-outputs updated',indTitle:'Indicators',
+    foot:'MY UN INFO · UNCF Cabo Verde 2023–2027 · Source: UN INFO exports stored in the "historico" folder',
+    heroTitle:'Evolution {a} → {b}',heroMeta:'AWP {y} · comparison between UN INFO exports',
+    kAvail:'Available {y}',kExp:'Expenditure {y}',kExec:'Financial execution',kGap:'Funding gap {y}',kCount:'Sub-outputs {y}',
+    was:'was {v} on {d}',na:'n/a',pp:'pp',
+    bDetail:'Sub-output detail for {t} is not available (the {t} export only contains totals). Lists below use the latest sub-output export: {d}. Export the sub-outputs file from UN INFO for {t} to see the detail.',
+    bAggFilter:'The {d} export only has totals by strategic priority, outcome and output. Agency and focal point filters cannot be applied to it.',
+    bAgency:'With an agency filter, amounts are the full amounts of the sub-outputs in which the agency participates.',
+    bSame:'Both dates use the same sub-output export: no sub-output changes can be measured.',
+    staleHint:'AWP {y} sub-outputs on {t} with missing expenditure or narrative, or ended but still open, and no change since {b}. Grouped by agency.',
+    chgHint:'Sub-outputs with any change in {y} expenditure, resources, narrative or status between {b} and {t}.',
+    indHint:'Indicator values reported for 2025 and 2026 on {t} (vs {b}).',
+    colAgency:'Agency',colSub:'Sub-output',colFocal:'Focal point',colStatus:'Status',colEnd:'End date',colAvail:'Available {y}',colExp:'Expenditure {y}',colIssues:'Issues',colChanges:'What changed',
+    colInd:'Indicator',colOutput:'Output',colR25:'Actual 2025',colR26:'Actual 2026',colState:'Status',
+    iNoExp:'No {y} expenditure',iNoNarr:'No {y} narrative',iEnded:'Ended, still open',
+    cExp:'Expenditure',cAvail:'Available',cReq:'Required',cNarrNew:'Narrative added',cNarrUpd:'Narrative updated',cStatus:'Status',cNew:'New sub-output',
+    sStale:'{n} sub-outputs to follow up',sAgencies:'{n} agencies',sAvailAtRisk:'{v} USD available without expenditure',
+    sChg:'{n} of {m} sub-outputs updated',sExpAdded:'+{v} USD expenditure reported',
+    sInd:'{n} indicators',s25:'{n} with 2025 value',s26:'{n} with 2026 value',sNew:'{n} new values since {b}',sMiss:'{n} still without 2025 value',
+    stNew:'New value',stOk:'Reported',stMiss:'No 2025 data',none:'Nothing to show for this selection.',loading:'Loading exports…',
+    noData:'No exports found in the historico folder.',printFilters:'Filters'},
+  pt:{back:'Voltar ao dashboard',title:'UN INFO — Evolução entre exportações',subtitle:'O que mudou no UN INFO desde a última atualização (AWP 2026)',
+    fBase:'Comparar desde',fTarget:'Até',fSP:'Prioridade estratégica',fOutcome:'Efeito',fAgency:'Agência',fFocal:'Ponto focal',pdf:'Gerar PDF',all:'Todas',
+    tlTitle:'Evolução no tempo (AWP 2026)',tlHint:'Recursos disponíveis e despesa de 2026 em cada exportação, com a taxa de execução.',
+    staleTitle:'Sub-outputs sem movimento — lista de ações',chgTitle:'Sub-outputs atualizados',indTitle:'Indicadores',
+    foot:'MY UN INFO · UNCF Cabo Verde 2023–2027 · Fonte: exportações UN INFO guardadas na pasta "historico"',
+    heroTitle:'Evolução {a} → {b}',heroMeta:'AWP {y} · comparação entre exportações do UN INFO',
+    kAvail:'Disponível {y}',kExp:'Despesa {y}',kExec:'Execução financeira',kGap:'Défice de financiamento {y}',kCount:'Sub-outputs {y}',
+    was:'era {v} a {d}',na:'n/d',pp:'pp',
+    bDetail:'O detalhe por sub-output de {t} não está disponível (a exportação de {t} só tem totais). As listas abaixo usam a última exportação de sub-outputs: {d}. Exporte do UN INFO o ficheiro de sub-outputs de {t} para ver o detalhe.',
+    bAggFilter:'A exportação de {d} só tem totais por prioridade estratégica, efeito e produto. Os filtros de agência e ponto focal não se aplicam a ela.',
+    bAgency:'Com filtro de agência, os montantes são os totais dos sub-outputs em que a agência participa.',
+    bSame:'As duas datas usam a mesma exportação de sub-outputs: não é possível medir alterações por sub-output.',
+    staleHint:'Sub-outputs do AWP {y} em {t} sem despesa ou narrativa, ou terminados mas abertos, e sem alterações desde {b}. Agrupados por agência.',
+    chgHint:'Sub-outputs com alguma alteração na despesa, recursos, narrativa ou estado de {y} entre {b} e {t}.',
+    indHint:'Valores dos indicadores reportados para 2025 e 2026 em {t} (vs {b}).',
+    colAgency:'Agência',colSub:'Sub-output',colFocal:'Ponto focal',colStatus:'Estado',colEnd:'Fim',colAvail:'Disponível {y}',colExp:'Despesa {y}',colIssues:'Problemas',colChanges:'O que mudou',
+    colInd:'Indicador',colOutput:'Produto',colR25:'Real 2025',colR26:'Real 2026',colState:'Estado',
+    iNoExp:'Sem despesa {y}',iNoNarr:'Sem narrativa {y}',iEnded:'Terminado, ainda aberto',
+    cExp:'Despesa',cAvail:'Disponível',cReq:'Necessário',cNarrNew:'Narrativa adicionada',cNarrUpd:'Narrativa atualizada',cStatus:'Estado',cNew:'Novo sub-output',
+    sStale:'{n} sub-outputs a acompanhar',sAgencies:'{n} agências',sAvailAtRisk:'{v} USD disponíveis sem despesa',
+    sChg:'{n} de {m} sub-outputs atualizados',sExpAdded:'+{v} USD de despesa reportada',
+    sInd:'{n} indicadores',s25:'{n} com valor 2025',s26:'{n} com valor 2026',sNew:'{n} valores novos desde {b}',sMiss:'{n} ainda sem valor 2025',
+    stNew:'Valor novo',stOk:'Reportado',stMiss:'Sem dados 2025',none:'Nada a mostrar para esta seleção.',loading:'A carregar exportações…',
+    noData:'Não foram encontradas exportações na pasta historico.',printFilters:'Filtros'}
+};
+let LANG = 'en';
+try{ LANG = localStorage.getItem('uninfo-evo-lang') || 'en'; }catch(e){}
+function t(k,vars){ let s=(I18N[LANG]&&I18N[LANG][k])||I18N.en[k]||k; s=s.replace(/\{y\}/g,YEAR); if(vars) Object.keys(vars).forEach(v=>{ s=s.split('{'+v+'}').join(vars[v]); }); return s; }
+
+/* ---------- helpers ---------- */
+const num = v => { if(v===null||v===undefined) return 0; const s=String(v).trim(); if(s===''||s==='-') return 0; const n=Number(s.replace(/,/g,'')); return isFinite(n)?n:0; };
+const empty = v => v===null||v===undefined||String(v).trim()===''||String(v).trim()==='-';
+const fmt = n => (n===null||n===undefined||!isFinite(n)) ? t('na') : (n<0?'-':'')+Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+const pct = n => (n===null||!isFinite(n)) ? t('na') : (n*100).toFixed(1)+'%';
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fdate = d => { const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; };
+const splitList = s => String(s||'').split(/[;,]/).map(x=>x.trim()).filter(x=>x && x!=='-');
+
+/* ---------- loading ---------- */
+function repoInfo(){
+  const m = String(location.hostname||'').match(/^([^.]+)\.github\.io$/); if(!m) return null;
+  const seg = String(location.pathname||'').split('/').filter(Boolean);
+  return {owner:m[1], name: seg.length && !/\.html?$/i.test(seg[0]) ? seg[0] : (m[1]+'.github.io')};
+}
+async function listSnapshots(){
+  const r = repoInfo();
+  if(r){
+    try{
+      const res = await fetch(`https://api.github.com/repos/${r.owner}/${r.name}/contents/historico`,{cache:'no-store'});
+      if(res.ok){
+        const dirs = (await res.json()).filter(f=>f.type==='dir' && /^\d{4}-\d{2}-\d{2}$/.test(f.name));
+        const out = [];
+        for(const d of dirs){
+          const rr = await fetch(`https://api.github.com/repos/${r.owner}/${r.name}/contents/historico/${d.name}`,{cache:'no-store'});
+          if(!rr.ok) throw new Error('list');
+          const files = (await rr.json()).filter(f=>f.type==='file' && /\.csv$/i.test(f.name)).map(f=>f.name);
+          out.push({date:d.name, files});
+        }
+        if(out.length) return out;
+      }
+    }catch(e){ console.info('[Evolution] GitHub API unavailable, using manifest.json', e); }
+  }
+  const m = await fetch('historico/manifest.json?v='+Date.now(),{cache:'no-store'}).then(x=>x.ok?x.json():{snapshots:[]}).catch(()=>({snapshots:[]}));
+  return m.snapshots||[];
+}
+function readCSV(url){
+  return fetch(encodeURI(url)+'?v='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(txt=>new Promise(res=>{
+    if(!txt.trim()) return res([]);
+    Papa.parse(txt,{header:true,skipEmptyLines:true,complete:x=>res(x.data||[]),error:()=>res([])});
+  })).catch(()=>[]);
+}
+function typeOf(rows){
+  if(!rows.length) return null; const h=rows[0];
+  if(h['3-id']!==undefined && h['5-1-agency-abbreviation']!==undefined) return 'fin';
+  if(h['indicators']!==undefined && h['baseline']!==undefined) return 'ind';
+  if((h['ID']!==undefined) && h[YEAR+' Available']!==undefined) return 'sub';
+  if(h['Entity type']!==undefined && h['Available resources']!==undefined) return 'agg';
+  return null;
+}
+let SNAPS = [];
+async function loadAll(){
+  const list = (await listSnapshots()).sort((a,b)=>a.date.localeCompare(b.date));
+  const snaps = [];
+  for(const s of list){
+    const snap = {date:s.date, sub:null, ind:null, fin:null, agg:null, files:[]};
+    const parts = await Promise.all(s.files.map(f=>readCSV(`historico/${s.date}/${f}`).then(rows=>({f,rows}))));
+    parts.forEach(({f,rows})=>{
+      const ty = typeOf(rows); if(!ty) return;
+      snap.files.push(f);
+      if(ty==='sub'){ const m=new Map(); rows.forEach(r=>{ if(r.ID) m.set(String(r.ID).trim(), r); }); if(!snap.sub || m.size>snap.sub.size) snap.sub=m; }
+      else if(ty==='ind'){ if(!snap.ind || rows.length>snap.ind.length) snap.ind=rows; }
+      else if(ty==='fin'){ snap.fin=rows; }
+      else if(ty==='agg'){
+        snap.agg = snap.agg || {sp:{},outcome:{},output:{}};
+        rows.forEach(r=>{
+          const et=String(r['Entity type']||'').toLowerCase(); const code=String(r.code||'').trim();
+          const v={a:num(r['Available resources']),r:num(r['Required resources']),e:num(r['Expenditure'])};
+          if(et.startsWith('strategic')) snap.agg.sp[code]=v; else if(et==='outcome') snap.agg.outcome[code]=v; else if(et==='output') snap.agg.output[code]=v;
+        });
+      }
+    });
+    if(snap.sub||snap.ind||snap.agg) snaps.push(snap);
+  }
+  return snaps;
+}
+
+/* ---------- reference maps (outcome -> SP, labels) ---------- */
+let OUTCOME_SP = {}, OUTCOME_NAME = {}, OUTCOME_TEXT_SP = {}, SP_NAME = {};
+function buildMaps(){
+  SNAPS.forEach(s=>{ if(!s.sub) return; s.sub.forEach(r=>{
+    const oc=String(r['Outcome code']||'').trim(), sp=String(r['Strategic priority code']||'').trim();
+    if(oc){ OUTCOME_SP[oc]=sp; OUTCOME_NAME[oc]=r['Outcome']; OUTCOME_TEXT_SP[String(r['Outcome']||'').trim()]=sp; }
+    if(sp) SP_NAME[sp]=r['Strategic priority'];
+  }); });
+}
+
+/* ---------- filters ---------- */
+const F = {base:null,target:null,sp:'SP 1',outcome:'',agency:'',focal:''};
+const subMatches = r => {
+  if(F.sp && String(r['Strategic priority code']).trim()!==F.sp) return false;
+  if(F.outcome && String(r['Outcome code']).trim()!==F.outcome) return false;
+  if(F.agency && !splitList(r['Agency abbreviations']).includes(F.agency)) return false;
+  if(F.focal && !splitList(r['Focal users']).includes(F.focal)) return false;
+  return true;
+};
+const inAWP = r => num(r[YEAR+' Required'])>0 || num(r[YEAR+' Available'])>0 || num(r[YEAR+' Expenditure'])>0;
+
+function totals(snap){
+  if(!snap) return null;
+  if(snap.sub){
+    const tt={a:0,r:0,e:0,n:0,src:'sub'};
+    snap.sub.forEach(r=>{ if(!inAWP(r)||!subMatches(r)) return; tt.a+=num(r[YEAR+' Available']); tt.r+=num(r[YEAR+' Required']); tt.e+=num(r[YEAR+' Expenditure']); tt.n++; });
+    return tt;
+  }
+  if(snap.agg && !F.agency && !F.focal){
+    let v=null;
+    if(F.outcome) v=snap.agg.outcome[F.outcome];
+    else if(F.sp) v=snap.agg.sp[F.sp];
+    else { const vals=Object.values(snap.agg.sp); if(vals.length) v=vals.reduce((x,y)=>({a:x.a+y.a,r:x.r+y.r,e:x.e+y.e}),{a:0,r:0,e:0}); }
+    return v ? {a:v.a,r:v.r,e:v.e,n:null,src:'agg'} : null;
+  }
+  return null;
+}
+const subSnapAtOrBefore = date => { const c=SNAPS.filter(s=>s.sub && s.date<=date); return c.length?c[c.length-1]:null; };
+const indSnapAtOrBefore = date => { const c=SNAPS.filter(s=>s.ind && s.date<=date); return c.length?c[c.length-1]:null; };
+
+function fillSelect(id, opts, val){
+  const el=document.getElementById(id);
+  el.innerHTML = opts.map(o=>`<option value="${esc(o.v)}"${o.v===val?' selected':''}>${esc(o.l)}</option>`).join('');
+}
+function refreshFilterOptions(){
+  const dates = SNAPS.map(s=>({v:s.date,l:fdate(s.date)+(s.sub?'':' (totals)')}));
+  fillSelect('fBase', dates, F.base); fillSelect('fTarget', dates, F.target);
+  const sps = Object.keys(SP_NAME).sort();
+  fillSelect('fSP', [{v:'',l:t('all')}].concat(sps.map(s=>({v:s,l:s}))), F.sp);
+  const ocs = Object.keys(OUTCOME_SP).filter(o=>!F.sp||OUTCOME_SP[o]===F.sp).sort();
+  if(F.outcome && !ocs.includes(F.outcome)) F.outcome='';
+  fillSelect('fOutcome', [{v:'',l:t('all')}].concat(ocs.map(o=>({v:o,l:o}))), F.outcome);
+  const agencies=new Set(), focals=new Set();
+  SNAPS.forEach(s=>{ if(s.sub) s.sub.forEach(r=>{ if(!inAWP(r)) return;
+    if(F.sp && String(r['Strategic priority code']).trim()!==F.sp) return;
+    splitList(r['Agency abbreviations']).forEach(a=>agencies.add(a)); splitList(r['Focal users']).forEach(a=>focals.add(a)); }); });
+  if(F.agency && !agencies.has(F.agency)) F.agency='';
+  if(F.focal && !focals.has(F.focal)) F.focal='';
+  fillSelect('fAgency', [{v:'',l:t('all')}].concat([...agencies].sort().map(a=>({v:a,l:a}))), F.agency);
+  fillSelect('fFocal', [{v:'',l:t('all')}].concat([...focals].sort().map(a=>({v:a,l:a}))), F.focal);
+}
+
+/* ---------- rendering ---------- */
+function deltaHtml(cur, base, kind){
+  if(cur===null||base===null||!isFinite(cur)||!isFinite(base)) return `<span class="delta flat">${t('na')}</span>`;
+  const d = cur-base;
+  if(kind==='pp'){ const pp=d*100; const cls=Math.abs(pp)<0.05?'flat':(pp>0?'up':'down'); return `<span class="delta ${cls}">${pp>0?'+':''}${pp.toFixed(1)} ${t('pp')}</span>`; }
+  const rel = base!==0 ? ` (${d>0?'+':''}${(d/base*100).toFixed(1)}%)` : '';
+  let cls = Math.abs(d)<0.5?'flat':(d>0?'up':'down');
+  if(kind==='gap') cls = Math.abs(d)<0.5?'flat':(d>0?'down':'up');
+  return `<span class="delta ${cls}">${d>0?'+':''}${fmt(d)}${rel}</span>`;
+}
+function renderKPIs(T, B, tDate, bDate){
+  const v = (o,k) => o ? o[k] : null;
+  const exec = o => o && o.a>0 ? o.e/o.a : null;
+  const gap = o => o ? o.r-o.a : null;
+  const card = (lbl, cur, base, kind, fmtFn) => `<div class="card"><div class="lbl">${lbl}</div><div class="val">${fmtFn(cur)}</div>
+     <div class="base">${t('was',{v:fmtFn(base),d:fdate(bDate)})}</div>${deltaHtml(cur,base,kind)}</div>`;
+  document.getElementById('kpis').innerHTML =
+    card(t('kAvail'), v(T,'a'), v(B,'a'), 'abs', fmt) +
+    card(t('kExp'), v(T,'e'), v(B,'e'), 'abs', fmt) +
+    card(t('kExec'), exec(T), exec(B), 'pp', pct) +
+    card(t('kGap'), gap(T), gap(B), 'gap', fmt);
+}
+let chart=null;
+function renderTimeline(){
+  const pts = SNAPS.map(s=>({d:s.date, v:totals(s)}));
+  const labels = pts.map(p=>fdate(p.d));
+  const data = {labels, datasets:[
+    {type:'bar',label:t('kAvail'),data:pts.map(p=>p.v?Math.round(p.v.a):null),backgroundColor:'#BFE3F5',yAxisID:'y',order:2},
+    {type:'bar',label:t('kExp'),data:pts.map(p=>p.v?Math.round(p.v.e):null),backgroundColor:'#0063A6',yAxisID:'y',order:2},
+    {type:'line',label:t('kExec'),data:pts.map(p=>p.v&&p.v.a>0?+(p.v.e/p.v.a*100).toFixed(1):null),borderColor:'#E5243B',backgroundColor:'#E5243B',yAxisID:'y1',tension:.25,spanGaps:true,order:1}
+  ]};
+  const opts = {responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y1'?`${c.dataset.label}: ${c.raw}%`:`${c.dataset.label}: ${fmt(c.raw)} USD`}}},
+    scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}},y1:{position:'right',beginAtZero:true,max:100,grid:{drawOnChartArea:false},ticks:{callback:v=>v+'%'}}}};
+  if(chart) chart.destroy();
+  chart = new Chart(document.getElementById('tlChart'), {data, options:opts});
+}
+function subLabel(r){ return `<strong>${esc(r.ID)}</strong> · ${esc(r['Sub-Output'])}<div class="muted">${esc(r['Output code'])}</div>`; }
+function changesFor(r, b){
+  const out=[];
+  if(!b){ out.push(`<span class="chip b">${t('cNew')}</span>`); return out; }
+  [['Expenditure','cExp','g'],['Available','cAvail','b'],['Required','cReq','n']].forEach(([f,lab,c])=>{
+    const d=num(r[YEAR+' '+f])-num(b[YEAR+' '+f]);
+    if(Math.abs(d)>0.5) out.push(`<span class="chip ${d>0?c:'r'}">${t(lab)} ${d>0?'+':''}${fmt(d)}</span>`);
+  });
+  const nN=r[YEAR+' Narrative'], nB=b[YEAR+' Narrative'];
+  if(empty(nB) && !empty(nN)) out.push(`<span class="chip g">${t('cNarrNew')}</span>`);
+  else if(!empty(nN) && String(nN).trim()!==String(nB).trim()) out.push(`<span class="chip b">${t('cNarrUpd')}</span>`);
+  if(String(r.Status||'')!==String(b.Status||'')) out.push(`<span class="chip a">${t('cStatus')}: ${esc(b.Status)} → ${esc(r.Status)}</span>`);
+  return out;
+}
+function groupByAgency(rows){
+  const g={}; rows.forEach(x=>{ const ags=splitList(x.r['Agency abbreviations']); const k=F.agency||ags[0]||'—'; (g[k]=g[k]||[]).push(x); });
+  return Object.keys(g).sort().map(k=>({k,rows:g[k]}));
+}
+function renderLists(tDate, bDate){
+  const TS = subSnapAtOrBefore(tDate), BS = subSnapAtOrBefore(bDate);
+  const banners = [];
+  const tSnap = SNAPS.find(s=>s.date===tDate), bSnap = SNAPS.find(s=>s.date===bDate);
+  if(TS && TS.date!==tDate) banners.push(['warn', t('bDetail',{t:fdate(tDate), d:fdate(TS.date)})]);
+  [tSnap,bSnap].forEach(s=>{ if(s && !s.sub && (F.agency||F.focal)) banners.push(['warn', t('bAggFilter',{d:fdate(s.date)})]); });
+  if(F.agency) banners.push(['info', t('bAgency')]);
+  if(TS && BS && TS.date===BS.date && tDate!==bDate) banners.push(['info', t('bSame')]);
+  document.getElementById('banners').innerHTML = banners.filter((b,i,a)=>a.findIndex(x=>x[1]===b[1])===i)
+    .map(([c,m])=>`<div class="banner ${c}"><i class="fa-solid ${c==='warn'?'fa-triangle-exclamation':'fa-circle-info'}"></i><div>${esc(m)}</div></div>`).join('');
+
+  const tLab = TS?fdate(TS.date):t('na'), bLab = BS?fdate(BS.date):t('na');
+  // changes
+  const changed=[], changedIds=new Set(); let scope=0, expAdded=0;
+  if(TS){ TS.sub.forEach(r=>{
+    const b = BS ? BS.sub.get(String(r.ID).trim()) : null;
+    if(!subMatches(r) || !(inAWP(r) || (b && inAWP(b)))) return;
+    scope++;
+    if(BS && TS.date!==BS.date){
+      const ch = changesFor(r,b);
+      if(ch.length){ changed.push({r,ch}); changedIds.add(String(r.ID).trim()); expAdded += num(r[YEAR+' Expenditure'])-(b?num(b[YEAR+' Expenditure']):0); }
+    }
+  }); }
+  document.getElementById('chgHint').textContent = t('chgHint',{b:bLab,t:tLab});
+  document.getElementById('chgSummary').innerHTML = `<span class="pill">${t('sChg',{n:`<strong>${changed.length}</strong>`,m:scope})}</span>`+
+    (expAdded>0.5?`<span class="pill">${t('sExpAdded',{v:`<strong>${fmt(expAdded)}</strong>`})}</span>`:'');
+  const cg = groupByAgency(changed);
+  document.getElementById('chgTable').innerHTML = changed.length ? `<thead><tr><th>${t('colSub')}</th><th>${t('colFocal')}</th><th class="num">${t('colExp')}</th><th>${t('colChanges')}</th></tr></thead><tbody>`+
+    cg.map(g=>`<tr class="grp"><td colspan="4">${esc(g.k)} · ${g.rows.length}</td></tr>`+g.rows.map(x=>`<tr><td>${subLabel(x.r)}</td><td>${esc(x.r['Focal users'])}</td><td class="num">${fmt(num(x.r[YEAR+' Expenditure']))}</td><td>${x.ch.join('')}</td></tr>`).join('')).join('')+'</tbody>'
+    : `<tbody><tr><td class="muted">${t('none')}</td></tr></tbody>`;
+
+  // stale / action list
+  const stale=[]; let availNoExp=0;
+  if(TS){ const snapDate=TS.date; TS.sub.forEach(r=>{
+    if(!inAWP(r)||!subMatches(r)) return;
+    if(changedIds.has(String(r.ID).trim())) return;
+    const issues=[];
+    if(num(r[YEAR+' Expenditure'])<=0) issues.push(`<span class="chip r">${t('iNoExp')}</span>`);
+    if(empty(r[YEAR+' Narrative'])) issues.push(`<span class="chip a">${t('iNoNarr')}</span>`);
+    const st=String(r.Status||'').toLowerCase();
+    if(r['End date'] && String(r['End date']).slice(0,10)<snapDate && !['closed','cancelled'].includes(st)) issues.push(`<span class="chip n">${t('iEnded')}</span>`);
+    if(issues.length){ stale.push({r,issues}); if(num(r[YEAR+' Expenditure'])<=0) availNoExp+=num(r[YEAR+' Available']); }
+  }); }
+  const sg = groupByAgency(stale);
+  document.getElementById('staleHint').textContent = t('staleHint',{t:tLab,b:bLab});
+  document.getElementById('staleSummary').innerHTML = `<span class="pill">${t('sStale',{n:`<strong>${stale.length}</strong>`})}</span><span class="pill">${t('sAgencies',{n:`<strong>${sg.length}</strong>`})}</span>`+
+    (availNoExp>0?`<span class="pill">${t('sAvailAtRisk',{v:`<strong>${fmt(availNoExp)}</strong>`})}</span>`:'');
+  document.getElementById('staleTable').innerHTML = stale.length ? `<thead><tr><th>${t('colSub')}</th><th>${t('colFocal')}</th><th>${t('colStatus')}</th><th>${t('colEnd')}</th><th class="num">${t('colAvail')}</th><th>${t('colIssues')}</th></tr></thead><tbody>`+
+    sg.map(g=>`<tr class="grp"><td colspan="6">${esc(g.k)} · ${g.rows.length}</td></tr>`+g.rows.map(x=>`<tr><td>${subLabel(x.r)}</td><td>${esc(x.r['Focal users'])}</td><td>${esc(x.r.Status)}</td><td>${esc(String(x.r['End date']||'').slice(0,10))}</td><td class="num">${fmt(num(x.r[YEAR+' Available']))}</td><td>${x.issues.join('')}</td></tr>`).join('')).join('')+'</tbody>'
+    : `<tbody><tr><td class="muted">${t('none')}</td></tr></tbody>`;
+}
+function indSP(row){
+  const sp = OUTCOME_TEXT_SP[String(row.outcome||'').trim()]; if(sp) return sp;
+  const m = String(row.outcome||'').match(/(?:Efeito|Outcome)\s+(\d+(?:\.\d+)?)/i);
+  if(m){ const code=m[1]; return OUTCOME_SP[code] || OUTCOME_SP[code.split('.')[0]] || ''; }
+  return '';
+}
+function renderIndicators(tDate, bDate){
+  const TI = indSnapAtOrBefore(tDate), BI = indSnapAtOrBefore(bDate);
+  const tLab = TI?fdate(TI.date):t('na'), bLab = BI?fdate(BI.date):t('na');
+  document.getElementById('indHint').textContent = t('indHint',{t:tLab,b:bLab});
+  if(!TI){ document.getElementById('indSummary').innerHTML=''; document.getElementById('indTable').innerHTML=`<tbody><tr><td class="muted">${t('none')}</td></tr></tbody>`; return; }
+  const key = r => (r.indicators||'')+'|'+(r.output||'');
+  const bMap = new Map((BI?BI.ind:[]).map(r=>[key(r),r]));
+  const rows = TI.ind.filter(r=>{
+    if(F.sp && indSP(r)!==F.sp) return false;
+    if(F.outcome){ const oc = Object.keys(OUTCOME_NAME).find(k=>String(OUTCOME_NAME[k]).trim()===String(r.outcome||'').trim()); if(oc!==F.outcome) return false; }
+    if(F.agency && !splitList(r['agency abbreviations']).includes(F.agency)) return false;
+    return true;
+  });
+  let n25=0,n26=0,nNew=0,nMiss=0;
+  const out = rows.map(r=>{
+    const b=bMap.get(key(r)); const has25=!empty(r['reached 2025']), has26=!empty(r['reached 2026']);
+    const new25 = has25 && b && empty(b['reached 2025']), new26 = has26 && b && empty(b['reached 2026']);
+    if(has25) n25++; if(has26) n26++; if(new25||new26) nNew++; if(!has25) nMiss++;
+    const st = (new25||new26) ? `<span class="chip g">${t('stNew')}</span>` : (has25 ? `<span class="chip b">${t('stOk')}</span>` : `<span class="chip r">${t('stMiss')}</span>`);
+    const outCode = (String(r.output||'').match(/(\d+\.\d+\.\d+)/)||[])[1] || (String(r.outcome||'').match(/(?:Efeito|Outcome)\s+(\d+(?:\.\d+)?)/i)||[])[1] || '';
+    return {r,st,order:has25?(new25||new26?0:2):1,outCode};
+  }).sort((a,b)=>a.order-b.order||a.outCode.localeCompare(b.outCode));
+  document.getElementById('indSummary').innerHTML = `<span class="pill">${t('sInd',{n:`<strong>${rows.length}</strong>`})}</span><span class="pill">${t('s25',{n:`<strong>${n25}</strong>`})}</span><span class="pill">${t('s26',{n:`<strong>${n26}</strong>`})}</span>`+
+    (BI&&BI.date!==TI.date?`<span class="pill">${t('sNew',{n:`<strong>${nNew}</strong>`,b:bLab})}</span>`:'')+`<span class="pill">${t('sMiss',{n:`<strong>${nMiss}</strong>`})}</span>`;
+  document.getElementById('indTable').innerHTML = out.length ? `<thead><tr><th>${t('colOutput')}</th><th>${t('colInd')}</th><th>${t('colAgency')}</th><th class="num">${t('colR25')}</th><th class="num">${t('colR26')}</th><th>${t('colState')}</th></tr></thead><tbody>`+
+    out.map(x=>`<tr><td>${esc(x.outCode)}</td><td>${esc(x.r.indicators)}</td><td>${esc(x.r['agency abbreviations'])}</td><td class="num">${esc(empty(x.r['reached 2025'])?'—':x.r['reached 2025'])}</td><td class="num">${esc(empty(x.r['reached 2026'])?'—':x.r['reached 2026'])}</td><td>${x.st}</td></tr>`).join('')+'</tbody>'
+    : `<tbody><tr><td class="muted">${t('none')}</td></tr></tbody>`;
+}
+function render(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent=t(el.dataset.i18n); });
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active', b.dataset.lang===LANG));
+  if(!SNAPS.length){ document.getElementById('heroTitle').textContent=t('noData'); return; }
+  refreshFilterOptions();
+  const tSnap = SNAPS.find(s=>s.date===F.target), bSnap = SNAPS.find(s=>s.date===F.base);
+  document.getElementById('heroTitle').textContent = t('heroTitle',{a:fdate(F.base),b:fdate(F.target)});
+  document.getElementById('heroMeta').textContent = t('heroMeta');
+  const scope = [F.sp||t('all'), F.outcome?(LANG==='pt'?'Efeito ':'Outcome ')+F.outcome:'', F.agency, F.focal].filter(Boolean).join(' · ');
+  document.getElementById('heroScope').textContent = scope;
+  renderKPIs(totals(tSnap), totals(bSnap), F.target, F.base);
+  renderTimeline();
+  renderLists(F.target, F.base);
+  renderIndicators(F.target, F.base);
+  document.getElementById('footFiles').textContent = SNAPS.map(s=>fdate(s.date)).join(' · ');
+}
+
+/* ---------- events ---------- */
+document.querySelectorAll('.lang-btn').forEach(b=>b.addEventListener('click',()=>{ LANG=b.dataset.lang; try{localStorage.setItem('uninfo-evo-lang',LANG);}catch(e){} render(); }));
+[['fBase','base'],['fTarget','target'],['fSP','sp'],['fOutcome','outcome'],['fAgency','agency'],['fFocal','focal']].forEach(([id,k])=>{
+  document.getElementById(id).addEventListener('change',e=>{ F[k]=e.target.value; if(k==='sp'){F.outcome='';} if(F.base>F.target){ const x=F.base; F.base=F.target; F.target=x; } render(); });
+});
+document.getElementById('btnPdf').addEventListener('click',()=>{ if(chart){ chart.resize(); } setTimeout(()=>window.print(),150); });
+
+(async function init(){
+  document.getElementById('heroTitle').textContent = I18N[LANG].loading;
+  SNAPS = await loadAll();
+  if(!SNAPS.length){ render(); return; }
+  buildMaps();
+  F.target = SNAPS[SNAPS.length-1].date;
+  const prefer = SNAPS.find(s=>s.date==='2026-09-04' && s.sub);
+  F.base = prefer && prefer.date<F.target ? prefer.date : (SNAPS.length>1 ? SNAPS[SNAPS.length-2].date : F.target);
+  render();
+})();
+</script>
+</body>
+</html>
