@@ -45,6 +45,8 @@
     .tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:2px solid #DDE4EC;flex-wrap:wrap;overflow-x:auto;scrollbar-width:thin;}
     .tab-btn{background:none;border:none;padding:11px clamp(14px,2vw,26px);font-weight:600;font-size:14px;cursor:pointer;color:#5C6F87;border-bottom:3px solid transparent;transition:all .2s;margin-bottom:-2px;white-space:nowrap;flex:0 0 auto;}
     .tab-btn.active{color:#00A1DE;border-bottom-color:#00A1DE;}
+    .tab-link{padding:11px clamp(14px,2vw,26px);font-weight:600;font-size:14px;color:#5C6F87;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;flex:0 0 auto;text-decoration:none;}
+    .tab-link:hover{color:#00A1DE;}
     .tab-pane{display:none;}.tab-pane.active{display:block;}
 
     /* ── FILTERS ── */
@@ -505,6 +507,7 @@
     <button class="tab-btn" data-tab="project"><i class="fa-regular fa-folder-open"></i> <span data-i18n="tabProject">Por Sub-Output</span></button>
     <button class="tab-btn" data-tab="indicators"><i class="fa-solid fa-list-check"></i> <span data-i18n="tabIndicators">Indicadores</span></button>
     <button class="tab-btn" data-tab="report"><i class="fa-solid fa-chart-simple"></i> <span data-i18n="tabReport">UNCT Report</span></button>
+    <a class="tab-link" href="evolucao.html"><i class="fa-solid fa-chart-line"></i> <span data-i18n="tabEvolution">Evolução</span></a>
   </div>
 
 
@@ -814,7 +817,7 @@ const I18N = {
   pt: {
     badge:'Dashboard de Sub-Outputs', sub:'Monitorização financeira e resultados · UNCF 2023–2027',
     lastLoad:'Último carregamento', loadCsv:'Carregar CSV',
-    tabReport:'UNCT Report', tabIndicators:'Indicadores', tabFocal:'Por Focal Point', tabProject:'Por Sub-Output',
+    tabReport:'UNCT Report', tabEvolution:'Evolução', tabIndicators:'Indicadores', tabFocal:'Por Focal Point', tabProject:'Por Sub-Output',
     filterFocal:'Focal Point', filterYear:'Ano', filterStatus:'Status',
     allYears:'Todos os anos', allStatus:'Todos', selectOne:'Selecione',
     btnDownload:'Download PDF',
@@ -889,7 +892,7 @@ const I18N = {
   en: {
     badge:'Sub-Output Dashboard', sub:'Financial monitoring & results · UNCF 2023–2027',
     lastLoad:'Last loaded', loadCsv:'Upload CSV',
-    tabReport:'UNCT Report', tabIndicators:'Indicators', tabFocal:'By Focal Point', tabProject:'By Sub-Output',
+    tabReport:'UNCT Report', tabEvolution:'Evolution', tabIndicators:'Indicators', tabFocal:'By Focal Point', tabProject:'By Sub-Output',
     filterFocal:'Focal Point', filterYear:'Year', filterStatus:'Status',
     allYears:'All years', allStatus:'All', selectOne:'Select',
     btnDownload:'Download PDF',

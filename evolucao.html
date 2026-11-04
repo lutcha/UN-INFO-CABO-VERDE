@@ -58,6 +58,18 @@
   .pill strong{color:#003366;}
   .muted{color:#7A8CA0;}
   .print-only{display:none;}
+  .ms{position:relative;}
+  .ms-btn{width:100%;padding:9px 30px 9px 13px;border-radius:10px;border:1px solid #CED5DE;background:white;font-size:13px;color:#1A2C3D;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;}
+  .ms-btn::after{content:'▾';position:absolute;right:11px;top:50%;transform:translateY(-50%);color:#5F7F9E;}
+  .ms-btn.on{border-color:#00A1DE;background:#F2FAFE;font-weight:600;}
+  .ms-panel{display:none;position:absolute;z-index:50;top:calc(100% + 4px);left:0;min-width:100%;width:max-content;max-width:340px;background:white;border:1px solid #CED5DE;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:8px;}
+  .ms.open .ms-panel{display:block;}
+  .ms-search{width:100%;padding:7px 10px;border:1px solid #DDE4EC;border-radius:8px;font-size:12.5px;margin-bottom:6px;}
+  .ms-list{max-height:260px;overflow:auto;}
+  .ms-list label{display:flex;gap:8px;align-items:center;padding:5px 6px;border-radius:6px;font-size:12.5px;cursor:pointer;}
+  .ms-list label:hover{background:#F4F7FB;}
+  .ms-actions{display:flex;justify-content:space-between;border-top:1px solid #EEF1F5;margin-top:6px;padding-top:6px;}
+  .ms-actions button{background:none;border:none;color:#00A1DE;font-weight:600;font-size:12px;cursor:pointer;}
   footer{font-size:11px;color:#7A8CA0;text-align:center;padding:20px;}
   @media print{
     @page{size:A4;margin:12mm;}
@@ -93,8 +105,8 @@
     <div class="filter-group"><label data-i18n="fTarget">To</label><select id="fTarget"></select></div>
     <div class="filter-group"><label data-i18n="fSP">Strategic priority</label><select id="fSP"></select></div>
     <div class="filter-group"><label data-i18n="fOutcome">Outcome</label><select id="fOutcome"></select></div>
-    <div class="filter-group"><label data-i18n="fAgency">Agency</label><select id="fAgency"></select></div>
-    <div class="filter-group"><label data-i18n="fFocal">Focal point</label><select id="fFocal"></select></div>
+    <div class="filter-group"><label data-i18n="fAgency">Agency</label><div class="ms" id="fAgency"></div></div>
+    <div class="filter-group"><label data-i18n="fFocal">Focal point</label><div class="ms" id="fFocal"></div></div>
     <div><button class="btn" id="btnPdf"><i class="fa-solid fa-file-pdf"></i> <span data-i18n="pdf">Generate PDF</span></button></div>
   </div>
 
@@ -166,7 +178,7 @@ const I18N = {
     was:'was {v} on {d}',na:'n/a',pp:'pp',
     bDetail:'Sub-output detail for {t} is not available (the {t} export only contains totals). Lists below use the latest sub-output export: {d}. Export the sub-outputs file from UN INFO for {t} to see the detail.',
     bAggFilter:'The {d} export only has totals by strategic priority, outcome and output. Agency and focal point filters cannot be applied to it.',
-    bAgency:'With an agency filter, amounts are the full amounts of the sub-outputs in which the agency participates.',
+    bAgency:'With an agency filter, amounts are the full amounts of the sub-outputs in which at least one selected agency participates (joint sub-outputs are counted once).',
     bSame:'Both dates use the same sub-output export: no sub-output changes can be measured.',
     staleHint:'AWP {y} sub-outputs on {t} with missing expenditure or narrative, or ended but still open, and no change since {b}. Grouped by agency.',
     chgHint:'Sub-outputs with any change in {y} expenditure, resources, narrative or status between {b} and {t}.',
@@ -179,7 +191,7 @@ const I18N = {
     sChg:'{n} of {m} sub-outputs updated',sExpAdded:'+{v} USD expenditure reported',
     sInd:'{n} indicators',s25:'{n} with 2025 value',s26:'{n} with 2026 value',sNew:'{n} new values since {b}',sMiss:'{n} still without 2025 value',
     stNew:'New value',stOk:'Reported',stMiss:'No 2025 data',none:'Nothing to show for this selection.',loading:'Loading exports…',
-    noData:'No exports found in the historico folder.',printFilters:'Filters'},
+    noData:'No exports found in the historico folder.',printFilters:'Filters',msSearch:'Search…',msClear:'Clear',msAll:'Select all',msN:'{n} selected',msHint:'Shows sub-outputs and indicators involving any of the selected items.'},
   pt:{back:'Voltar ao dashboard',title:'UN INFO — Evolução entre exportações',subtitle:'O que mudou no UN INFO desde a última atualização (AWP 2026)',
     fBase:'Comparar desde',fTarget:'Até',fSP:'Prioridade estratégica',fOutcome:'Efeito',fAgency:'Agência',fFocal:'Ponto focal',pdf:'Gerar PDF',all:'Todas',
     tlTitle:'Evolução no tempo (AWP 2026)',tlHint:'Recursos disponíveis e despesa de 2026 em cada exportação, com a taxa de execução.',
@@ -190,7 +202,7 @@ const I18N = {
     was:'era {v} a {d}',na:'n/d',pp:'pp',
     bDetail:'O detalhe por sub-output de {t} não está disponível (a exportação de {t} só tem totais). As listas abaixo usam a última exportação de sub-outputs: {d}. Exporte do UN INFO o ficheiro de sub-outputs de {t} para ver o detalhe.',
     bAggFilter:'A exportação de {d} só tem totais por prioridade estratégica, efeito e produto. Os filtros de agência e ponto focal não se aplicam a ela.',
-    bAgency:'Com filtro de agência, os montantes são os totais dos sub-outputs em que a agência participa.',
+    bAgency:'Com filtro de agência, os montantes são os totais dos sub-outputs em que participa pelo menos uma das agências selecionadas (sub-outputs conjuntos contam uma só vez).',
     bSame:'As duas datas usam a mesma exportação de sub-outputs: não é possível medir alterações por sub-output.',
     staleHint:'Sub-outputs do AWP {y} em {t} sem despesa ou narrativa, ou terminados mas abertos, e sem alterações desde {b}. Agrupados por agência.',
     chgHint:'Sub-outputs com alguma alteração na despesa, recursos, narrativa ou estado de {y} entre {b} e {t}.',
@@ -203,7 +215,7 @@ const I18N = {
     sChg:'{n} de {m} sub-outputs atualizados',sExpAdded:'+{v} USD de despesa reportada',
     sInd:'{n} indicadores',s25:'{n} com valor 2025',s26:'{n} com valor 2026',sNew:'{n} valores novos desde {b}',sMiss:'{n} ainda sem valor 2025',
     stNew:'Valor novo',stOk:'Reportado',stMiss:'Sem dados 2025',none:'Nada a mostrar para esta seleção.',loading:'A carregar exportações…',
-    noData:'Não foram encontradas exportações na pasta historico.',printFilters:'Filtros'}
+    noData:'Não foram encontradas exportações na pasta historico.',printFilters:'Filtros',msSearch:'Pesquisar…',msClear:'Limpar',msAll:'Selecionar todas',msN:'{n} selecionadas',msHint:'Mostra os sub-outputs e indicadores que envolvem qualquer um dos itens selecionados.'}
 };
 let LANG = 'en';
 try{ LANG = localStorage.getItem('uninfo-evo-lang') || 'en'; }catch(e){}
@@ -297,12 +309,12 @@ function buildMaps(){
 }
 
 /* ---------- filters ---------- */
-const F = {base:null,target:null,sp:'SP 1',outcome:'',agency:'',focal:''};
+const F = {base:null,target:null,sp:'SP 1',outcome:'',agency:[],focal:[]};
 const subMatches = r => {
   if(F.sp && String(r['Strategic priority code']).trim()!==F.sp) return false;
   if(F.outcome && String(r['Outcome code']).trim()!==F.outcome) return false;
-  if(F.agency && !splitList(r['Agency abbreviations']).includes(F.agency)) return false;
-  if(F.focal && !splitList(r['Focal users']).includes(F.focal)) return false;
+  if(F.agency.length && !splitList(r['Agency abbreviations']).some(a=>F.agency.includes(a))) return false;
+  if(F.focal.length && !splitList(r['Focal users']).some(a=>F.focal.includes(a))) return false;
   return true;
 };
 const inAWP = r => num(r[YEAR+' Required'])>0 || num(r[YEAR+' Available'])>0 || num(r[YEAR+' Expenditure'])>0;
@@ -314,7 +326,7 @@ function totals(snap){
     snap.sub.forEach(r=>{ if(!inAWP(r)||!subMatches(r)) return; tt.a+=num(r[YEAR+' Available']); tt.r+=num(r[YEAR+' Required']); tt.e+=num(r[YEAR+' Expenditure']); tt.n++; });
     return tt;
   }
-  if(snap.agg && !F.agency && !F.focal){
+  if(snap.agg && !F.agency.length && !F.focal.length){
     let v=null;
     if(F.outcome) v=snap.agg.outcome[F.outcome];
     else if(F.sp) v=snap.agg.sp[F.sp];
@@ -330,6 +342,29 @@ function fillSelect(id, opts, val){
   const el=document.getElementById(id);
   el.innerHTML = opts.map(o=>`<option value="${esc(o.v)}"${o.v===val?' selected':''}>${esc(o.l)}</option>`).join('');
 }
+const MS_OPEN = {};
+function buildMulti(id, items, key){
+  const el=document.getElementById(id); const sel=F[key];
+  const label = !sel.length ? t('all') : (sel.length<=2 ? sel.join(', ') : t('msN',{n:sel.length}));
+  const q = (el.querySelector('.ms-search')||{}).value || '';
+  el.innerHTML = `<button type="button" class="ms-btn${sel.length?' on':''}" title="${esc(sel.join(', '))}">${esc(label)}</button>
+    <div class="ms-panel"><input class="ms-search" placeholder="${esc(t('msSearch'))}" value="${esc(q)}">
+    <div class="ms-list">${items.map(v=>`<label data-v="${esc(v.toLowerCase())}"><input type="checkbox" value="${esc(v)}"${sel.includes(v)?' checked':''}> ${esc(v)}</label>`).join('')}</div>
+    <div class="ms-actions"><button type="button" data-act="clear">${esc(t('msClear'))}</button><button type="button" data-act="all">${esc(t('msAll'))}</button></div>
+    <div class="muted" style="font-size:11px;margin-top:4px;max-width:300px">${esc(t('msHint'))}</div></div>`;
+  if(MS_OPEN[id]) el.classList.add('open'); else el.classList.remove('open');
+  const filt = () => { const v=el.querySelector('.ms-search').value.toLowerCase(); el.querySelectorAll('.ms-list label').forEach(l=>{ l.style.display = l.dataset.v.includes(v)?'':'none'; }); };
+  filt();
+  el.querySelector('.ms-btn').onclick = e => { e.stopPropagation(); Object.keys(MS_OPEN).forEach(k=>{ if(k!==id){ MS_OPEN[k]=false; document.getElementById(k).classList.remove('open'); } }); MS_OPEN[id]=!MS_OPEN[id]; el.classList.toggle('open', MS_OPEN[id]); if(MS_OPEN[id]) el.querySelector('.ms-search').focus(); };
+  el.querySelector('.ms-panel').onclick = e => e.stopPropagation();
+  el.querySelector('.ms-search').oninput = filt;
+  el.querySelectorAll('.ms-list input').forEach(cb=>cb.onchange=()=>{ F[key] = [...el.querySelectorAll('.ms-list input:checked')].map(x=>x.value); render(); });
+  el.querySelectorAll('.ms-actions button').forEach(b=>b.onclick=()=>{
+    if(b.dataset.act==='clear') F[key]=[];
+    else F[key]=[...new Set(F[key].concat([...el.querySelectorAll('.ms-list label')].filter(l=>l.style.display!=='none').map(l=>l.querySelector('input').value)))];
+    render(); });
+}
+document.addEventListener('click',()=>{ Object.keys(MS_OPEN).forEach(k=>{ MS_OPEN[k]=false; const e=document.getElementById(k); if(e) e.classList.remove('open'); }); });
 function refreshFilterOptions(){
   const dates = SNAPS.map(s=>({v:s.date,l:fdate(s.date)+(s.sub?'':' (totals)')}));
   fillSelect('fBase', dates, F.base); fillSelect('fTarget', dates, F.target);
@@ -341,11 +376,13 @@ function refreshFilterOptions(){
   const agencies=new Set(), focals=new Set();
   SNAPS.forEach(s=>{ if(s.sub) s.sub.forEach(r=>{ if(!inAWP(r)) return;
     if(F.sp && String(r['Strategic priority code']).trim()!==F.sp) return;
-    splitList(r['Agency abbreviations']).forEach(a=>agencies.add(a)); splitList(r['Focal users']).forEach(a=>focals.add(a)); }); });
-  if(F.agency && !agencies.has(F.agency)) F.agency='';
-  if(F.focal && !focals.has(F.focal)) F.focal='';
-  fillSelect('fAgency', [{v:'',l:t('all')}].concat([...agencies].sort().map(a=>({v:a,l:a}))), F.agency);
-  fillSelect('fFocal', [{v:'',l:t('all')}].concat([...focals].sort().map(a=>({v:a,l:a}))), F.focal);
+    if(F.outcome && String(r['Outcome code']).trim()!==F.outcome) return;
+    const ags=splitList(r['Agency abbreviations']); ags.forEach(a=>agencies.add(a));
+    if(!F.agency.length || ags.some(a=>F.agency.includes(a))) splitList(r['Focal users']).forEach(a=>focals.add(a)); }); });
+  F.agency = F.agency.filter(a=>agencies.has(a));
+  F.focal = F.focal.filter(a=>focals.has(a));
+  buildMulti('fAgency', [...agencies].sort(), 'agency');
+  buildMulti('fFocal', [...focals].sort((a,b)=>a.localeCompare(b)), 'focal');
 }
 
 /* ---------- rendering ---------- */
@@ -400,7 +437,7 @@ function changesFor(r, b){
   return out;
 }
 function groupByAgency(rows){
-  const g={}; rows.forEach(x=>{ const ags=splitList(x.r['Agency abbreviations']); const k=F.agency||ags[0]||'—'; (g[k]=g[k]||[]).push(x); });
+  const g={}; rows.forEach(x=>{ const ags=splitList(x.r['Agency abbreviations']); const k=(F.agency.length? ags.filter(a=>F.agency.includes(a)).join(' · ') : ags.join(' · '))||'—'; (g[k]=g[k]||[]).push(x); });
   return Object.keys(g).sort().map(k=>({k,rows:g[k]}));
 }
 function renderLists(tDate, bDate){
@@ -408,8 +445,8 @@ function renderLists(tDate, bDate){
   const banners = [];
   const tSnap = SNAPS.find(s=>s.date===tDate), bSnap = SNAPS.find(s=>s.date===bDate);
   if(TS && TS.date!==tDate) banners.push(['warn', t('bDetail',{t:fdate(tDate), d:fdate(TS.date)})]);
-  [tSnap,bSnap].forEach(s=>{ if(s && !s.sub && (F.agency||F.focal)) banners.push(['warn', t('bAggFilter',{d:fdate(s.date)})]); });
-  if(F.agency) banners.push(['info', t('bAgency')]);
+  [tSnap,bSnap].forEach(s=>{ if(s && !s.sub && (F.agency.length||F.focal.length)) banners.push(['warn', t('bAggFilter',{d:fdate(s.date)})]); });
+  if(F.agency.length) banners.push(['info', t('bAgency')]);
   if(TS && BS && TS.date===BS.date && tDate!==bDate) banners.push(['info', t('bSame')]);
   document.getElementById('banners').innerHTML = banners.filter((b,i,a)=>a.findIndex(x=>x[1]===b[1])===i)
     .map(([c,m])=>`<div class="banner ${c}"><i class="fa-solid ${c==='warn'?'fa-triangle-exclamation':'fa-circle-info'}"></i><div>${esc(m)}</div></div>`).join('');
@@ -470,7 +507,7 @@ function renderIndicators(tDate, bDate){
   const rows = TI.ind.filter(r=>{
     if(F.sp && indSP(r)!==F.sp) return false;
     if(F.outcome){ const oc = Object.keys(OUTCOME_NAME).find(k=>String(OUTCOME_NAME[k]).trim()===String(r.outcome||'').trim()); if(oc!==F.outcome) return false; }
-    if(F.agency && !splitList(r['agency abbreviations']).includes(F.agency)) return false;
+    if(F.agency.length && !splitList(r['agency abbreviations']).some(a=>F.agency.includes(a))) return false;
     return true;
   });
   let n25=0,n26=0,nNew=0,nMiss=0;
@@ -497,7 +534,7 @@ function render(){
   const tSnap = SNAPS.find(s=>s.date===F.target), bSnap = SNAPS.find(s=>s.date===F.base);
   document.getElementById('heroTitle').textContent = t('heroTitle',{a:fdate(F.base),b:fdate(F.target)});
   document.getElementById('heroMeta').textContent = t('heroMeta');
-  const scope = [F.sp||t('all'), F.outcome?(LANG==='pt'?'Efeito ':'Outcome ')+F.outcome:'', F.agency, F.focal].filter(Boolean).join(' · ');
+  const scope = [F.sp||t('all'), F.outcome?(LANG==='pt'?'Efeito ':'Outcome ')+F.outcome:'', F.agency.join(', '), F.focal.join(', ')].filter(Boolean).join(' · ');
   document.getElementById('heroScope').textContent = scope;
   renderKPIs(totals(tSnap), totals(bSnap), F.target, F.base);
   renderTimeline();
@@ -508,7 +545,7 @@ function render(){
 
 /* ---------- events ---------- */
 document.querySelectorAll('.lang-btn').forEach(b=>b.addEventListener('click',()=>{ LANG=b.dataset.lang; try{localStorage.setItem('uninfo-evo-lang',LANG);}catch(e){} render(); }));
-[['fBase','base'],['fTarget','target'],['fSP','sp'],['fOutcome','outcome'],['fAgency','agency'],['fFocal','focal']].forEach(([id,k])=>{
+[['fBase','base'],['fTarget','target'],['fSP','sp'],['fOutcome','outcome']].forEach(([id,k])=>{
   document.getElementById(id).addEventListener('change',e=>{ F[k]=e.target.value; if(k==='sp'){F.outcome='';} if(F.base>F.target){ const x=F.base; F.base=F.target; F.target=x; } render(); });
 });
 document.getElementById('btnPdf').addEventListener('click',()=>{ if(chart){ chart.resize(); } setTimeout(()=>window.print(),150); });
