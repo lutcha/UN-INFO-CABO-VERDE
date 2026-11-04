@@ -177,7 +177,9 @@ const I18N = {
     kAvail:'Available {y}',kExp:'Expenditure {y}',kExec:'Financial execution',kGap:'Funding gap {y}',kCount:'Sub-outputs {y}',
     was:'was {v} on {d}',na:'n/a',pp:'pp',
     bDetail:'Sub-output detail for {t} is not available (the {t} export only contains totals). Lists below use the latest sub-output export: {d}. Export the sub-outputs file from UN INFO for {t} to see the detail.',
-    bAggFilter:'The {d} export only has totals by strategic priority, outcome and output. Agency and focal point filters cannot be applied to it.',
+    bAggFilter:'The {d} export only has totals by strategic priority, outcome and output. With an agency or focal point filter, the figures use the latest export with sub-output detail ({e}).',
+    kFrom:'Figures as of {d} (latest export with agency detail)',
+    kFromShort:'Figures as of {d}',
     bAgency:'With an agency filter, amounts are the full amounts of the sub-outputs in which at least one selected agency participates (joint sub-outputs are counted once).',
     bSame:'Both dates use the same sub-output export: no sub-output changes can be measured.',
     staleHint:'AWP {y} sub-outputs on {t} with missing expenditure or narrative, or ended but still open, and no change since {b}. Grouped by agency.',
@@ -201,7 +203,9 @@ const I18N = {
     kAvail:'Disponível {y}',kExp:'Despesa {y}',kExec:'Execução financeira',kGap:'Défice de financiamento {y}',kCount:'Sub-outputs {y}',
     was:'era {v} a {d}',na:'n/d',pp:'pp',
     bDetail:'O detalhe por sub-output de {t} não está disponível (a exportação de {t} só tem totais). As listas abaixo usam a última exportação de sub-outputs: {d}. Exporte do UN INFO o ficheiro de sub-outputs de {t} para ver o detalhe.',
-    bAggFilter:'A exportação de {d} só tem totais por prioridade estratégica, efeito e produto. Os filtros de agência e ponto focal não se aplicam a ela.',
+    bAggFilter:'A exportação de {d} só tem totais por prioridade estratégica, efeito e produto. Com filtro de agência ou ponto focal, os valores usam a última exportação com detalhe por sub-output ({e}).',
+    kFrom:'Valores de {d} (última exportação com detalhe por agência)',
+    kFromShort:'Valores de {d}',
     bAgency:'Com filtro de agência, os montantes são os totais dos sub-outputs em que participa pelo menos uma das agências selecionadas (sub-outputs conjuntos contam uma só vez).',
     bSame:'As duas datas usam a mesma exportação de sub-outputs: não é possível medir alterações por sub-output.',
     staleHint:'Sub-outputs do AWP {y} em {t} sem despesa ou narrativa, ou terminados mas abertos, e sem alterações desde {b}. Agrupados por agência.',
@@ -395,12 +399,13 @@ function deltaHtml(cur, base, kind){
   if(kind==='gap') cls = Math.abs(d)<0.5?'flat':(d>0?'down':'up');
   return `<span class="delta ${cls}">${d>0?'+':''}${fmt(d)}${rel}</span>`;
 }
-function renderKPIs(T, B, tDate, bDate){
+function renderKPIs(T, B, tDate, bDate, fbNote){
   const v = (o,k) => o ? o[k] : null;
   const exec = o => o && o.a>0 ? o.e/o.a : null;
   const gap = o => o ? o.r-o.a : null;
+  const tag = fbNote ? `<div class="base" style="margin-top:6px;color:#8A6100;"><i class="fa-regular fa-calendar"></i> ${esc(fbNote)}</div>` : '';
   const card = (lbl, cur, base, kind, fmtFn) => `<div class="card"><div class="lbl">${lbl}</div><div class="val">${fmtFn(cur)}</div>
-     <div class="base">${t('was',{v:fmtFn(base),d:fdate(bDate)})}</div>${deltaHtml(cur,base,kind)}</div>`;
+     <div class="base">${t('was',{v:fmtFn(base),d:fdate(bDate)})}</div>${deltaHtml(cur,base,kind)}${tag}</div>`;
   document.getElementById('kpis').innerHTML =
     card(t('kAvail'), v(T,'a'), v(B,'a'), 'abs', fmt) +
     card(t('kExp'), v(T,'e'), v(B,'e'), 'abs', fmt) +
@@ -445,7 +450,7 @@ function renderLists(tDate, bDate){
   const banners = [];
   const tSnap = SNAPS.find(s=>s.date===tDate), bSnap = SNAPS.find(s=>s.date===bDate);
   if(TS && TS.date!==tDate) banners.push(['warn', t('bDetail',{t:fdate(tDate), d:fdate(TS.date)})]);
-  [tSnap,bSnap].forEach(s=>{ if(s && !s.sub && (F.agency.length||F.focal.length)) banners.push(['warn', t('bAggFilter',{d:fdate(s.date)})]); });
+  [tSnap,bSnap].forEach(s=>{ if(s && !s.sub && (F.agency.length||F.focal.length)){ const e=subSnapAtOrBefore(s.date); banners.push(['info', t('bAggFilter',{d:fdate(s.date), e:e?fdate(e.date):t('na')})]); } });
   if(F.agency.length) banners.push(['info', t('bAgency')]);
   if(TS && BS && TS.date===BS.date && tDate!==bDate) banners.push(['info', t('bSame')]);
   document.getElementById('banners').innerHTML = banners.filter((b,i,a)=>a.findIndex(x=>x[1]===b[1])===i)
@@ -536,7 +541,12 @@ function render(){
   document.getElementById('heroMeta').textContent = t('heroMeta');
   const scope = [F.sp||t('all'), F.outcome?(LANG==='pt'?'Efeito ':'Outcome ')+F.outcome:'', F.agency.join(', '), F.focal.join(', ')].filter(Boolean).join(' · ');
   document.getElementById('heroScope').textContent = scope;
-  renderKPIs(totals(tSnap), totals(bSnap), F.target, F.base);
+  const needDetail = F.agency.length || F.focal.length;
+  const effT = (tSnap && !tSnap.sub && needDetail) ? (subSnapAtOrBefore(F.target)||tSnap) : tSnap;
+  const effB = (bSnap && !bSnap.sub && needDetail) ? (subSnapAtOrBefore(F.base)||bSnap) : bSnap;
+  const fb = effT!==tSnap ? t('kFrom',{d:fdate(effT.date)}) : '';
+  if(fb) document.getElementById('heroMeta').textContent = t('heroMeta') + ' · ' + fb;
+  renderKPIs(totals(effT), totals(effB), effT?effT.date:F.target, effB?effB.date:F.base, fb ? t('kFromShort',{d:fdate(effT.date)}) : '');
   renderTimeline();
   renderLists(F.target, F.base);
   renderIndicators(F.target, F.base);
