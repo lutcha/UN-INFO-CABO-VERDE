@@ -273,6 +273,7 @@ function typeOf(rows){
   if(h['indicators']!==undefined && h['baseline']!==undefined) return 'ind';
   if((h['ID']!==undefined) && h[YEAR+' Available']!==undefined) return 'sub';
   if(h['Entity type']!==undefined && h['Available resources']!==undefined) return 'agg';
+  if(h['abbreviation']!==undefined && h['Total Available resources']!==undefined) return 'ent';
   return null;
 }
 let SNAPS = [];
@@ -280,7 +281,7 @@ async function loadAll(){
   const list = (await listSnapshots()).sort((a,b)=>a.date.localeCompare(b.date));
   const snaps = [];
   for(const s of list){
-    const snap = {date:s.date, sub:null, ind:null, fin:null, agg:null, files:[]};
+    const snap = {date:s.date, sub:null, ind:null, fin:null, agg:null, ent:null, files:[]};
     const parts = await Promise.all(s.files.map(f=>readCSV(`historico/${s.date}/${f}`).then(rows=>({f,rows}))));
     parts.forEach(({f,rows})=>{
       const ty = typeOf(rows); if(!ty) return;
@@ -288,6 +289,7 @@ async function loadAll(){
       if(ty==='sub'){ const m=new Map(); rows.forEach(r=>{ if(r.ID) m.set(String(r.ID).trim(), r); }); if(!snap.sub || m.size>snap.sub.size) snap.sub=m; }
       else if(ty==='ind'){ if(!snap.ind || rows.length>snap.ind.length) snap.ind=rows; }
       else if(ty==='fin'){ snap.fin=rows; }
+      else if(ty==='ent'){ snap.ent={}; rows.forEach(r=>{ if(String(r.Year||'').trim()!==String(YEAR)) return; snap.ent[String(r.abbreviation||'').trim()]={a:num(r['Total Available resources']),r:num(r['Total Required resources']),e:num(r['Expenditure'])}; }); }
       else if(ty==='agg'){
         snap.agg = snap.agg || {sp:{},outcome:{},output:{}};
         rows.forEach(r=>{
@@ -297,7 +299,7 @@ async function loadAll(){
         });
       }
     });
-    if(snap.sub||snap.ind||snap.agg) snaps.push(snap);
+    if(snap.sub||snap.ind||snap.agg||snap.ent) snaps.push(snap);
   }
   return snaps;
 }
@@ -329,6 +331,11 @@ function totals(snap){
     const tt={a:0,r:0,e:0,n:0,src:'sub'};
     snap.sub.forEach(r=>{ if(!inAWP(r)||!subMatches(r)) return; tt.a+=num(r[YEAR+' Available']); tt.r+=num(r[YEAR+' Required']); tt.e+=num(r[YEAR+' Expenditure']); tt.n++; });
     return tt;
+  }
+  if(snap.ent && !F.sp && !F.outcome && !F.focal.length){
+    const ks = F.agency.length ? F.agency : Object.keys(snap.ent);
+    const v = ks.reduce((x,k)=>{ const y=snap.ent[k]; return y?{a:x.a+y.a,r:x.r+y.r,e:x.e+y.e}:x; },{a:0,r:0,e:0});
+    return {a:v.a,r:v.r,e:v.e,n:null,src:'agg'};
   }
   if(snap.agg && !F.agency.length && !F.focal.length){
     let v=null;
@@ -541,7 +548,7 @@ function render(){
   document.getElementById('heroMeta').textContent = t('heroMeta');
   const scope = [F.sp||t('all'), F.outcome?(LANG==='pt'?'Efeito ':'Outcome ')+F.outcome:'', F.agency.join(', '), F.focal.join(', ')].filter(Boolean).join(' · ');
   document.getElementById('heroScope').textContent = scope;
-  const needDetail = F.agency.length || F.focal.length;
+  const needDetail = F.focal.length || (F.agency.length && !(tSnap&&tSnap.ent&&!F.sp&&!F.outcome));
   const effT = (tSnap && !tSnap.sub && needDetail) ? (subSnapAtOrBefore(F.target)||tSnap) : tSnap;
   const effB = (bSnap && !bSnap.sub && needDetail) ? (subSnapAtOrBefore(F.base)||bSnap) : bSnap;
   const fb = effT!==tSnap ? t('kFrom',{d:fdate(effT.date)}) : '';

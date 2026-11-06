@@ -1102,6 +1102,19 @@ function getY(p,year,field){ return p[`${year} ${field}`]||0; }
 // ── Valores financeiros POR AGÊNCIA (fonte: funding values export) ──
 // Evita duplicação de montantes em sub-outputs com múltiplas agências.
 let AGENCY_FUNDING={};
+// ── Totais oficiais por entidade (export "Required, Available and Expenditure by UN Entity") ──
+// Quando existe, é a fonte dos cartões e das barras por agência do Relatório 2026,
+// porque bate com o painel de financiamento do UN INFO.
+let ENTITY_TOTALS=null, ENTITY_TOTALS_DATE='';
+function loadEntityTotalsRows(rows,dateLabel){
+  const nv=v=>parseFloat(String(v==null?'':v).replace(/,/g,''))||0, m={};
+  rows.forEach(r=>{
+    const ab=String(r.abbreviation||'').trim(); if(!ab||String(r.Year||'').trim()!=='2026') return;
+    m[ab]={required:nv(r['Total Required resources']),available:nv(r['Total Available resources']),spent:nv(r['Expenditure'])};
+  });
+  ENTITY_TOTALS=Object.keys(m).length?m:null; ENTITY_TOTALS_DATE=dateLabel||'';
+  if(PROJECTS_DATA.length){ renderReport(); renderAgencyReport(); }
+}
 const AF_FIELD={Required:0,Available:1,Expenditure:2};
 const AF_YEAR={2023:0,2024:1,2025:2,2026:3};
 function subTotal(p,year,field){
@@ -1478,7 +1491,9 @@ function renderAgencyReport(){
   const oCls=xCls(oPct);
   const labels=t('cards');
 
-  document.getElementById('agencySummary').innerHTML=`
+  const entA=ENTITY_TOTALS&&ENTITY_TOTALS[agency];
+  const entLine=entA?`<div style="grid-column:1/-1;font-size:12px;color:#334155;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:8px 12px;">${LANG==='en'?'Official UN INFO 2026 totals for':'Totais oficiais UN INFO 2026 de'} ${agency} (${ENTITY_TOTALS_DATE}): ${LANG==='en'?'available':'disponível'} ${fmtMoney(entA.available)} · ${LANG==='en'?'expenditure':'despesa'} ${fmtMoney(entA.spent)} · ${fmtPct(entA.available>0?entA.spent/entA.available*100:0)}. ${LANG==='en'?'The table below uses the sub-output detail export, which may be older.':'A tabela abaixo usa o export detalhado de sub-outputs, que pode ser mais antigo.'}</div>`:'';
+  document.getElementById('agencySummary').innerHTML=entLine+`
     <div class="sum-card c-blue"><div class="sc-icon"><i class="fa-regular fa-folder-open"></i></div><div class="sc-label">${labels[0]}</div><div class="sc-value">${rows.length}</div></div>
     <div class="sum-card c-blue"><div class="sc-icon"><i class="fa-regular fa-circle-dot"></i></div><div class="sc-label">${labels[1]}</div><div class="sc-value">${fmtMoney(tot.req)}</div></div>
     <div class="sum-card c-blue"><div class="sc-icon"><i class="fa-solid fa-sack-dollar"></i></div><div class="sc-label">${labels[2]}</div><div class="sc-value">${fmtMoney(tot.avail)}</div></div>
@@ -2006,7 +2021,12 @@ function renderReport(){
   const totalRequired=data.reduce((s,p)=>s+getY(p,reportYear,'Required'),0);
   const totalAvailable=data.reduce((s,p)=>s+getY(p,reportYear,'Available'),0);
   const totalExpenditure=data.reduce((s,p)=>s+getY(p,reportYear,'Expenditure'),0);
-  const execution=totalAvailable>0?(totalExpenditure/totalAvailable)*100:0;
+  let execution=totalAvailable>0?(totalExpenditure/totalAvailable)*100:0;
+  const ENT=ENTITY_TOTALS;
+  const entSum=ENT?Object.values(ENT).reduce((a,v)=>({r:a.r+v.required,a:a.a+v.available,e:a.e+v.spent}),{r:0,a:0,e:0}):null;
+  const kAvail=entSum?entSum.a:totalAvailable, kExp=entSum?entSum.e:totalExpenditure, kReq=entSum?entSum.r:totalRequired;
+  if(entSum) execution=kAvail>0?(kExp/kAvail)*100:0;
+  const srcNote=entSum?`<div style="font-size:11px;color:#64748B;margin-top:6px;">${LANG==='en'?'Totals and agency bars: UN INFO export by UN entity':'Totais e barras por agência: export do UN INFO por entidade'} (${ENTITY_TOTALS_DATE}). ${LANG==='en'?'Sub-output detail':'Detalhe por sub-output'}: ${DATA_LOADED_AT_LABEL}. ${LANG==='en'?'2026 expenditure is provisional until UN INFO publishes it (after April 2027).':'A despesa 2026 é provisória até o UN INFO a publicar (depois de abril de 2027).'}</div>`:'';
   const agencySet=new Set();
   const focalSet=new Set();
   data.forEach(p=>{
@@ -2014,12 +2034,12 @@ function renderReport(){
     getFocalUsers(p).forEach(f=>focalSet.add(f));
   });
 
-  document.getElementById('reportDate').innerHTML=`<i class="fa-regular fa-clock"></i> ${t('reportUpdated')}: ${DATA_LOADED_AT_LABEL || new Date().toLocaleString('pt-PT')}`;
+  document.getElementById('reportDate').innerHTML=`<i class="fa-regular fa-clock"></i> ${t('reportUpdated')}: ${ENTITY_TOTALS_DATE || DATA_LOADED_AT_LABEL || new Date().toLocaleString('pt-PT')}`+srcNote;
   document.getElementById('reportKpis').innerHTML=`
     <div class="report-card span-3"><div class="report-label">${t('reportTotalProjects')}</div><div class="report-value">${totalProjects}</div><div class="report-note">${reportYear}</div></div>
-    <div class="report-card span-3"><div class="report-label">${t('reportTotalAvailable')}</div><div class="report-value">${fmtMoney(totalAvailable)}</div><div class="report-note">USD</div></div>
-    <div class="report-card span-3"><div class="report-label">${t('reportTotalExpenditure')}</div><div class="report-value">${fmtMoney(totalExpenditure)}</div><div class="report-note">USD</div></div>
-    <div class="report-card span-3"><div class="report-label">${t('reportExecution')}</div><div class="report-value">${fmtPct(execution)}</div><div class="report-note">${fmtMoney(totalRequired)} ${t('colReq').toLowerCase()}<br>${agencySet.size} ${t('reportAgencies')} · ${focalSet.size} ${t('reportFocalPoints')}</div></div>
+    <div class="report-card span-3"><div class="report-label">${t('reportTotalAvailable')}</div><div class="report-value">${fmtMoney(kAvail)}</div><div class="report-note">USD</div></div>
+    <div class="report-card span-3"><div class="report-label">${t('reportTotalExpenditure')}</div><div class="report-value">${fmtMoney(kExp)}</div><div class="report-note">USD</div></div>
+    <div class="report-card span-3"><div class="report-label">${t('reportExecution')}</div><div class="report-value">${fmtPct(execution)}</div><div class="report-note">${fmtMoney(kReq)} ${t('colReq').toLowerCase()}<br>${agencySet.size} ${t('reportAgencies')} · ${focalSet.size} ${t('reportFocalPoints')}</div></div>
   `;
 
   const agencyFinance={};
@@ -2028,6 +2048,7 @@ function renderReport(){
     agencyFinance[a].available+=agencyShare(p,a,reportYear,'Available');
     agencyFinance[a].spent+=agencyShare(p,a,reportYear,'Expenditure');
   }));
+  if(ENT){ Object.keys(agencyFinance).forEach(k=>delete agencyFinance[k]); Object.entries(ENT).forEach(([a,v])=>{ agencyFinance[a]={available:v.available,spent:v.spent}; }); }
   const agencyEntries=Object.entries(agencyFinance).sort((a,b)=>b[1].available-a[1].available||a[0].localeCompare(b[0]));
   const sdgMap=new Map(SDG_DEFAULT_LABELS.map(label=>[sdgNumber(label),{number:sdgNumber(label),label,count:0,available:0,spent:0}]));
   data.forEach(p=>getSDGList(p).forEach(label=>{
@@ -2512,7 +2533,9 @@ renderIndicatorsReport();
    Como identifica cada ficheiro:
      coluna "indicators" + "baseline"          -> indicadores
      coluna "3-id" + "5-1-agency-abbreviation" -> financeiro por agencia
+     coluna "abbreviation" + "Total Available resources" -> totais por entidade
      coluna "ID"                               -> sub-outputs
+   Se houver dois ficheiros do mesmo tipo, usa o de data mais recente no nome.
 
    Se nao encontrar nada, ou se algo falhar, a pagina NAO fica em branco:
    continua a mostrar os dados embebidos acima. O botao "Carregar CSV"
@@ -2527,6 +2550,8 @@ renderIndicatorsReport();
     var h = rows[0];
     if(h['3-id']!==undefined && h['5-1-agency-abbreviation']!==undefined) return 'financeiro';
     if(h['indicators']!==undefined && h['baseline']!==undefined) return 'indicadores';
+    if(h['abbreviation']!==undefined && h['Total Available resources']!==undefined) return 'entidades';
+    if(h['name']!==undefined && h['year']!==undefined && h['value']!==undefined) return null;  // Delivery Rate: agregado, nao usado
     if(h['ID']!==undefined || h['id']!==undefined) return 'suboutputs';
     return null;
   }
@@ -2534,6 +2559,7 @@ renderIndicatorsReport();
   function aplicar(tipo, rows, label){
     if(tipo==='financeiro'){ loadAgencyFundingRows(rows); return 'financeiro por agencia ('+rows.length+' linhas)'; }
     if(tipo==='indicadores'){ loadIndicatorsFromArray(rows); renderIndicatorsReport(); return 'indicadores ('+rows.length+')'; }
+    if(tipo==='entidades'){ loadEntityTotalsRows(rows, label); return 'totais por entidade ('+rows.length+')'; }
     if(tipo==='suboutputs'){ loadDataFromArray(rows, label); return 'sub-outputs ('+rows.length+')'; }
     return null;
   }
@@ -2569,10 +2595,11 @@ renderIndicatorsReport();
           return r.text().then(function(t){ return {texto:t, modificado:lm}; });
         })
         .then(function(d){
-          var label = null;
-          if(d.modificado){ var dt=new Date(d.modificado); if(!isNaN(dt)) label = dt.toLocaleString('pt-PT'); }
+          var label = null, dm = String(url).match(/(\d{4})-(\d{2})-(\d{2})/);
+          if(dm) label = dm[3]+'/'+dm[2]+'/'+dm[1];
+          else if(d.modificado){ var dt=new Date(d.modificado); if(!isNaN(dt)) label = dt.toLocaleString('pt-PT'); }
           Papa.parse(d.texto, {header:true, skipEmptyLines:true,
-            complete:function(res){ resolve({rows:res.data, label:label, url:url}); },
+            complete:function(res){ resolve({rows:res.data, label:label, url:url, data:dm?dm[0]:''}); },
             error:function(){ resolve(null); }});
         })
         .catch(function(){ resolve(null); });
@@ -2590,12 +2617,14 @@ renderIndicatorsReport();
       resultados.forEach(function(r){
         if(!r) return;
         var t = tipoDe(r.rows);
-        // fica com o ficheiro que tiver mais linhas, se houver repetidos
-        if(t && (!porTipo[t] || r.rows.length > porTipo[t].rows.length)) porTipo[t] = r;
+        // se houver repetidos, fica com o MAIS RECENTE (data AAAA-MM-DD no nome);
+        // so desempata pelo numero de linhas quando as datas sao iguais ou faltam
+        if(!t) return; var o = porTipo[t];
+        if(!o || r.data > o.data || (r.data === o.data && r.rows.length > o.rows.length)) porTipo[t] = r;
       });
 
       var feitos = [];
-      ['suboutputs','financeiro','indicadores'].forEach(function(t){   // esta ordem importa
+      ['suboutputs','financeiro','entidades','indicadores'].forEach(function(t){   // esta ordem importa
         if(!porTipo[t]) return;
         try {
           var msg = aplicar(t, porTipo[t].rows, porTipo[t].label || new Date().toLocaleString('pt-PT'));
