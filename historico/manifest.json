@@ -43,7 +43,9 @@
    "date": "2026-11-06",
    "files": [
     "Export_Delivery_Rate_in_Cabo_Verde_2026-11-06.csv",
-    "Export_Required_Available_and_Expenditure_by_UN_Entity_2026-11-06.csv"
+    "Export_Required_Available_and_Expenditure_by_Output_2026-11-06.csv",
+    "Export_Required_Available_and_Expenditure_by_UN_Entity_2026-11-06.csv",
+    "export_2026-11-06.csv"
    ]
   }
  ]
