@@ -36,7 +36,8 @@
     "Export_Required_Available_and_Expenditure_by_Outcome_2026-11-03.csv",
     "Export_Required_Available_and_Expenditure_by_Output_2026-11-03.csv",
     "Export_Required_Available_and_Expenditure_by_Strategic_Priority_2026-11-03.csv",
-    "Export_Required_Available_and_Expenditure_per_Year_2026-11-03.csv"
+    "Export_Required_Available_and_Expenditure_per_Year_2026-11-03.csv",
+    "Indicator_Export_2026-11-03.csv"
    ]
   },
   {
@@ -46,6 +47,20 @@
     "Export_Required_Available_and_Expenditure_by_Output_2026-11-06.csv",
     "Export_Required_Available_and_Expenditure_by_UN_Entity_2026-11-06.csv",
     "export_2026-11-06.csv"
+   ]
+  },
+  {
+   "date": "2026-11-12",
+   "files": [
+    "Export_Delivery_Rate_in_Cabo_Verde_2026-11-12.csv",
+    "Export_Programmatic_Interventions_by_Outcome_2026-11-12.csv",
+    "Export_Programmatic_Interventions_by_Output_2026-11-12.csv",
+    "Export_Programmatic_Interventions_by_Strategic_Priority_2026-11-12.csv",
+    "Export_Required_Available_and_Expenditure_by_Outcome_2026-11-12.csv",
+    "Export_Required_Available_and_Expenditure_by_Output_2026-11-12.csv",
+    "Export_Required_Available_and_Expenditure_by_Strategic_Priority_2026-11-12.csv",
+    "Export_Required_Available_and_Expenditure_per_Year_2026-11-12.csv",
+    "Indicator_Export_2026-11-12.csv"
    ]
   }
  ]
