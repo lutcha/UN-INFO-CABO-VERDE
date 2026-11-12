@@ -1125,18 +1125,21 @@ function subTotal(p,year,field){
   return getY(p,year,field);
 }
 function agencyShare(p,agency,year,field){
-  const rec=AGENCY_FUNDING[String(p.ID).trim()];
-  const arr=rec?rec[agency]:null;
-  if(arr){
-    const fi=AF_FIELD[field];
-    if(year==='all') return (arr[fi]||0)+(arr[3+fi]||0)+(arr[6+fi]||0)+(arr[9+fi]||0);
-    const yi=AF_YEAR[year];
-    return yi===undefined?0:(arr[yi*3+fi]||0);
-  }
-  // fallback sem dados por agência: divide o total igualmente (nunca duplica)
+  // Os montantes vêm sempre do export de sub-produtos (o mais recente). O export "funding values"
+  // pode ser mais antigo, por isso serve apenas para repartir os sub-produtos conjuntos entre agências.
   const ags=splitMulti(p["Agency abbreviations"]||p.Agencies);
   const full=subTotal(p,year,field);
-  return ags.length>1?full/ags.length:full;
+  if(ags.length<=1) return full;
+  const rec=AGENCY_FUNDING[String(p.ID).trim()];
+  if(rec){
+    const fi=AF_FIELD[field];
+    const val=arr=>{ if(!arr) return 0; if(year==='all') return (arr[fi]||0)+(arr[3+fi]||0)+(arr[6+fi]||0)+(arr[9+fi]||0);
+      const yi=AF_YEAR[year]; return yi===undefined?0:(arr[yi*3+fi]||0); };
+    const sum=ags.reduce((s,a)=>s+val(rec[a]),0);
+    if(sum>0) return full*val(rec[agency])/sum;
+  }
+  // sem proporções por agência: divide o total igualmente (nunca duplica)
+  return full/ags.length;
 }
 function agencyShareCell(v,tot,shared){
   const base=fmtMoneyDash(v);
