@@ -74,6 +74,18 @@
     "Export_Required_Available_and_Expenditure_per_Year_2026-11-16.csv",
     "export_2026-11-16.csv"
    ]
+  },
+  {
+   "date": "2026-11-18",
+   "files": [
+    "Export_Delivery_Rate_in_Cabo_Verde_2026-11-18.csv",
+    "Export_Required_Available_and_Expenditure_by_Outcome_2026-11-18.csv",
+    "Export_Required_Available_and_Expenditure_by_Output_2026-11-18.csv",
+    "Export_Required_Available_and_Expenditure_by_Strategic_Priority_2026-11-18.csv",
+    "Export_Required_Available_and_Expenditure_per_Year_2026-11-18.csv",
+    "Indicator_Export_2026-11-18.csv",
+    "export_2026-11-18.csv"
+   ]
   }
  ]
 }
