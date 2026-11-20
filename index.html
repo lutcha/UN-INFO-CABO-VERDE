@@ -244,6 +244,10 @@
     body.report-printing .tab-pane{display:none!important;}
     body.report-printing #tab-report{display:block!important;}
     body.report-printing .report-pdf-btn{display:none!important;}
+    .narr-badge{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .narr-badge.ok{background:#DCFCE7;color:#166534;}
+    .narr-badge.miss{background:#FEE2E2;color:#991B1B;}
+    .narr-badge.na{background:#F1F5F9;color:#64748B;}
     #focalSupervisorPrint{display:none;}
     @media print{
       body.indicator-printing{background:white;}
@@ -641,6 +645,7 @@
                 <th class="num" data-i18n="colAvail">Disponível</th>
                 <th class="num" data-i18n="colExp">Despesa</th>
                 <th data-i18n="colPct">% Despesa</th>
+                <th data-i18n="colNarr">Narrativa</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -651,6 +656,7 @@
                 <td class="num" id="totAvail">—</td>
                 <td class="num" id="totExp">—</td>
                 <td id="totPct"></td>
+                <td id="totNarr"></td>
               </tr>
             </tfoot>
           </table>
@@ -714,6 +720,7 @@
                 <th class="num" data-i18n="colAvail">Disponível</th>
                 <th class="num" data-i18n="colExp">Despesa</th>
                 <th data-i18n="colPct">% Despesa</th>
+                <th data-i18n="colNarr">Narrativa</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -724,6 +731,7 @@
                 <td class="num" id="agTotAvail">—</td>
                 <td class="num" id="agTotExp">—</td>
                 <td id="agTotPct"></td>
+                <td id="agTotNarr"></td>
               </tr>
             </tfoot>
           </table>
@@ -1167,6 +1175,16 @@ function loadAgencyFundingRows(rows){
 }
 function markerNumber(v){ const m=String(v||'').match(/^\s*(\d+)/); return m?Number(m[1]):null; }
 function getNarr(p,year){ return p[`${year} Narrative`]||''; }
+function narrYear(yr){ return (!yr||yr==='all')? new Date().getFullYear() : parseInt(yr); }
+function narrState(p,yr){
+  const y=narrYear(yr), v=String(getNarr(p,y)||'').trim();
+  if(v && v!=='-') return 'ok';
+  if(!(getY(p,y,'Available')>0 || getY(p,y,'Expenditure')>0)) return 'na';
+  return 'miss';
+}
+function narrLabel(st){ return st==='ok'?'✓':st==='na'?'—':(LANG==='en'?'Missing':'Em falta'); }
+function narrCell(p,yr){ const st=narrState(p,yr); return `<span class="narr-badge ${st}" title="${t('colNarr')} ${narrYear(yr)}">${narrLabel(st)}</span>`; }
+function narrTotal(rows,yr){ const n=rows.filter(r=>narrState(r.p,yr)==='miss').length; return n?`<span class="narr-badge miss">${n} ${LANG==='en'?'missing':'em falta'}</span>`:`<span class="narr-badge ok">✓</span>`; }
 function externalLink(id){ return `https://workspace.uninfo.org/dashboard/plan/1511/build/suboutput/${id}`; }
 
 function parseGeo(geoStr){
@@ -1424,7 +1442,7 @@ function renderFocalReport(){
 
   const tbody=document.querySelector('#projectsTable tbody');
   if(!rows.length){
-    tbody.innerHTML=`<tr><td colspan="9" class="empty-state" style="padding:28px;">${t('noProjects')}</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="10" class="empty-state" style="padding:28px;">${t('noProjects')}</td></tr>`;
     document.getElementById('totalsRow').style.display='none';
   } else {
     tbody.innerHTML=rows.map(r=>`
@@ -1438,6 +1456,7 @@ function renderFocalReport(){
         <td class="num">${fmtMoneyDash(r.avail)}</td>
         <td class="num">${fmtMoneyDash(r.exp)}</td>
         <td><div class="pct-bar"><div class="bar"><div class="fill ${xCls(r.pct)}" style="width:${Math.min(100,r.pct)}%"></div></div><span>${fmtPct(r.pct)}</span></div></td>
+        <td>${narrCell(r.p,yr)}</td>
       </tr>`).join('');
 
     const totRow=document.getElementById('totalsRow');
@@ -1446,6 +1465,7 @@ function renderFocalReport(){
     document.getElementById('totAvail').textContent=fmtMoneyDash(tot.avail);
     document.getElementById('totExp').textContent=fmtMoneyDash(tot.exp);
     document.getElementById('totPct').innerHTML=`<div class="pct-bar"><div class="bar"><div class="fill ${oCls}" style="width:${Math.min(100,oPct)}%"></div></div><span>${fmtPct(oPct)}</span></div>`;
+    document.getElementById('totNarr').innerHTML=narrTotal(rows,yr);
   }
 
   if(chartInstance) chartInstance.destroy();
@@ -1506,7 +1526,7 @@ function renderAgencyReport(){
 
   const tbody=document.querySelector('#agencyProjectsTable tbody');
   if(!rows.length){
-    tbody.innerHTML=`<tr><td colspan="9" class="empty-state" style="padding:28px;">${t('noProjects')}</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="10" class="empty-state" style="padding:28px;">${t('noProjects')}</td></tr>`;
     document.getElementById('agencyTotalsRow').style.display='none';
   } else {
     tbody.innerHTML=rows.map(r=>`
@@ -1520,6 +1540,7 @@ function renderAgencyReport(){
         <td class="num">${agencyShareCell(r.avail,r.totAvail,r.shared)}</td>
         <td class="num">${agencyShareCell(r.exp,r.totExp,r.shared)}</td>
         <td><div class="pct-bar"><div class="bar"><div class="fill ${xCls(r.pct)}" style="width:${Math.min(100,r.pct)}%"></div></div><span>${fmtPct(r.pct)}</span></div></td>
+        <td>${narrCell(r.p,yr)}</td>
       </tr>`).join('');
 
     const totRow=document.getElementById('agencyTotalsRow');
@@ -1528,6 +1549,7 @@ function renderAgencyReport(){
     document.getElementById('agTotAvail').textContent=fmtMoneyDash(tot.avail);
     document.getElementById('agTotExp').textContent=fmtMoneyDash(tot.exp);
     document.getElementById('agTotPct').innerHTML=`<div class="pct-bar"><div class="bar"><div class="fill ${oCls}" style="width:${Math.min(100,oPct)}%"></div></div><span>${fmtPct(oPct)}</span></div>`;
+    document.getElementById('agTotNarr').innerHTML=narrTotal(rows,yr);
   }
 
   if(window.agencyChartInstance) window.agencyChartInstance.destroy();
@@ -2303,6 +2325,7 @@ function buildFocalSupervisorReport(){
     <td class="num">${fmtMoneyDash(r.avail)}</td>
     <td class="num">${fmtMoneyDash(r.exp)}</td>
     <td class="num">${fmtPct(r.pct)}</td>
+    <td><span class="narr-badge ${narrState(r.p,yr)}">${narrLabel(narrState(r.p,yr))}</span></td>
   </tr>`).join('');
   const agencyHtml=agencyRows.map(([name,v])=>`<div class="sup-bar-row">
     <div class="sup-bar-head"><strong>${escHtml(name)}</strong><span>${fmtMoneyDash(v.avail)} USD · ${v.count} Sub-Outputs</span></div>
@@ -2356,7 +2379,7 @@ function buildFocalSupervisorReport(){
     <div class="sup-section">
       <h2>Lista detalhada de Sub-Outputs</h2>
       <table class="sup-table">
-        <thead><tr><th>ID</th><th>Sub-Output</th><th>SP</th><th>Agência</th><th>Status</th><th class="num">Necessário</th><th class="num">Disponível</th><th class="num">Despesa</th><th class="num">% Despesa</th></tr></thead>
+        <thead><tr><th>ID</th><th>Sub-Output</th><th>SP</th><th>Agência</th><th>Status</th><th class="num">Necessário</th><th class="num">Disponível</th><th class="num">Despesa</th><th class="num">% Despesa</th><th>Narrativa ${narrYear(yr)}</th></tr></thead>
         <tbody>${tableRows}</tbody>
       </table>
     </div>
@@ -2407,7 +2430,7 @@ function buildAgencySupervisorReport(){
   rows.forEach(r=>{ const sp=shortSP(r.p["Strategic priority code"]); if(!spMap[sp]) spMap[sp]={avail:0,exp:0,count:0}; spMap[sp].avail+=r.avail; spMap[sp].exp+=r.exp; spMap[sp].count+=1; });
   const spRows=Object.entries(spMap).sort((a,b)=>a[0].localeCompare(b[0]));
   const period=yr==='all'?t('allYears'):yr, statusLabel=st==='all'?t('allStatus'):st, generated=new Date().toLocaleString('pt-PT');
-  const tableRows=rows.map(r=>`<tr><td><strong>${escHtml(r.p.ID)}</strong></td><td>${escHtml(subOutputText(r.p).slice(0,135))}</td><td>${escHtml(shortSP(r.p["Strategic priority code"]))}</td><td>${escHtml(getFocalUsers(r.p).join(', ')||'—')}</td><td><span class="sup-status">${escHtml(r.p.Status||'—')}</span></td><td class="num">${agencyShareCell(r.req,r.totReq,r.shared)}</td><td class="num">${agencyShareCell(r.avail,r.totAvail,r.shared)}</td><td class="num">${agencyShareCell(r.exp,r.totExp,r.shared)}</td><td class="num">${fmtPct(r.pct)}</td></tr>`).join('');
+  const tableRows=rows.map(r=>`<tr><td><strong>${escHtml(r.p.ID)}</strong></td><td>${escHtml(subOutputText(r.p).slice(0,135))}</td><td>${escHtml(shortSP(r.p["Strategic priority code"]))}</td><td>${escHtml(getFocalUsers(r.p).join(', ')||'—')}</td><td><span class="sup-status">${escHtml(r.p.Status||'—')}</span></td><td class="num">${agencyShareCell(r.req,r.totReq,r.shared)}</td><td class="num">${agencyShareCell(r.avail,r.totAvail,r.shared)}</td><td class="num">${agencyShareCell(r.exp,r.totExp,r.shared)}</td><td class="num">${fmtPct(r.pct)}</td><td><span class="narr-badge ${narrState(r.p,yr)}">${narrLabel(narrState(r.p,yr))}</span></td></tr>`).join('');
   const focalHtml=focalRows.map(([name,v])=>`<div class="sup-bar-row"><div class="sup-bar-head"><strong>${escHtml(name)}</strong><span>${fmtMoneyDash(v.avail)} USD disponível · ${fmtMoneyDash(v.exp)} USD despesa · ${v.count} Sub-Outputs</span></div><div class="sup-track"><span class="sup-fill" style="width:${Math.min(100,(v.avail/maxFocal)*100)}%"></span></div><div class="sup-track" style="margin-top:3px;"><span class="sup-fill exp" style="width:${Math.min(100,v.avail>0?(v.exp/v.avail)*100:0)}%"></span></div></div>`).join('');
   const spHtml=spRows.map(([name,v])=>`<div class="sup-bar-row"><div class="sup-bar-head"><strong>${escHtml(name)}</strong><span>${fmtMoneyDash(v.avail)} USD · ${fmtPct(v.avail>0?(v.exp/v.avail)*100:0)}</span></div><div class="sup-track"><span class="sup-fill exp" style="width:${Math.min(100,v.avail>0?(v.exp/v.avail)*100:0)}%"></span></div></div>`).join('');
   document.getElementById('focalSupervisorPrint').innerHTML=`
@@ -2416,7 +2439,7 @@ function buildAgencySupervisorReport(){
     <div class="sup-section"><h2>Leitura executiva</h2><div class="sup-note">A agência <strong>${escHtml(agency)}</strong> concentra ${rows.length} Sub-Outputs no filtro selecionado, com ${fmtMoney(total.avail)} USD disponíveis e ${fmtMoney(total.exp)} USD de despesa reportada. A execução financeira global é ${fmtPct(execution)}.</div></div>
     <div class="sup-section"><h2>Carteira por Focal Point / Grupo</h2><div class="sup-bars">${focalHtml}</div></div>
     <div class="sup-section"><h2>Execução por prioridade estratégica</h2><div class="sup-bars">${spHtml}</div></div>
-    <div class="sup-section"><h2>Lista detalhada de Sub-Outputs</h2><table class="sup-table"><thead><tr><th>ID</th><th>Sub-Output</th><th>SP</th><th>Focal Point</th><th>Status</th><th class="num">Necessário</th><th class="num">Disponível</th><th class="num">Despesa</th><th class="num">% Despesa</th></tr></thead><tbody>${tableRows}</tbody></table></div>
+    <div class="sup-section"><h2>Lista detalhada de Sub-Outputs</h2><table class="sup-table"><thead><tr><th>ID</th><th>Sub-Output</th><th>SP</th><th>Focal Point</th><th>Status</th><th class="num">Necessário</th><th class="num">Disponível</th><th class="num">Despesa</th><th class="num">% Despesa</th><th>Narrativa ${narrYear(yr)}</th></tr></thead><tbody>${tableRows}</tbody></table></div>
     <div class="sup-footer">MY UN INFO · UNCF Cabo Verde 2023-2027 · Relatório preparado para supervisão</div>`;
   return true;
 }
