@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indicadores UNCF — Estado e lacunas</title>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+:root{--navy:#003366;--blue:#006BB3;--sky:#00A1DE;--ink:#1A2C3D;--soft:#4A627A;--line:#E0E7ED;--bg:#F0F4F9;
+  --ok:#166534;--okbg:#DCFCE7;--on:#1E40AF;--onbg:#DBEAFE;--late:#92400E;--latebg:#FEF3C7;--back:#991B1B;--backbg:#FEE2E2;--rev:#5B21B6;--revbg:#EDE9FE;--na:#475569;--nabg:#F1F5F9;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--ink);line-height:1.4;font-size:14px;}
+a{color:var(--blue);}
+.top{background:var(--navy);color:#fff;padding:14px clamp(16px,3vw,40px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+.top h1{font-size:20px;font-weight:800;}
+.top .sub{font-size:12px;opacity:.85;}
+.top .right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:30px;padding:6px 12px;font-size:12px;}
+.btn{background:var(--sky);color:#fff;border:none;border-radius:30px;padding:8px 14px;font-weight:700;font-size:12px;cursor:pointer;text-decoration:none;display:inline-block;}
+.btn.ghost{background:#fff;color:var(--navy);}
+.btn.small{padding:4px 10px;font-size:11px;}
+.sdg{display:flex;height:5px}.sdg span{flex:1}
+.wrap{max-width:1500px;margin:0 auto;padding:18px clamp(16px,3vw,40px) 60px;}
+.note{background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#78350F;margin-bottom:14px;}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;}
+.kpi{background:#fff;border-radius:14px;padding:14px 16px;border-top:4px solid var(--sky);box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.kpi.warn{border-top-color:#F59E0B}.kpi.good{border-top-color:#10B981}
+.kpi .l{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--soft);}
+.kpi .v{font-size:28px;font-weight:800;color:var(--navy);margin-top:4px;}
+.kpi .s{font-size:12px;color:var(--soft);margin-top:2px;}
+.panel{background:#fff;border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.panel h2{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:4px;}
+.panel .hint{font-size:12px;color:var(--soft);margin-bottom:10px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:1000px){.grid2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{background:#EEF3FA;color:#315679;text-transform:uppercase;font-size:10.5px;letter-spacing:.4px;padding:8px;text-align:left;position:sticky;top:0;z-index:1;}
+td{border-bottom:1px solid #EDF2F7;padding:7px 8px;vertical-align:top;}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+tr.click{cursor:pointer}tr.click:hover td{background:#F7FAFD}
+tr.sel td{background:#E6F4FB}
+.scroll{overflow:auto;max-height:640px;border:1px solid var(--line);border-radius:10px;}
+.b{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap;}
+.b.ok{background:var(--okbg);color:var(--ok)}.b.on{background:var(--onbg);color:var(--on)}.b.late{background:var(--latebg);color:var(--late)}
+.b.back{background:var(--backbg);color:var(--back)}.b.rev{background:var(--revbg);color:var(--rev)}.b.na{background:var(--nabg);color:var(--na)}
+.b.miss{background:var(--backbg);color:var(--back)}
+.flag{display:inline-block;font-size:10.5px;color:#92400E;background:#FEF3C7;border-radius:6px;padding:1px 6px;margin:2px 2px 0 0;}
+.bar{height:7px;background:#E7EEF6;border-radius:10px;overflow:hidden;min-width:70px}
+.bar span{display:block;height:100%;background:var(--blue);border-radius:10px}
+.stack{display:flex;height:12px;border-radius:6px;overflow:hidden;min-width:140px;background:#EEF2F6}
+.stack span{display:block;height:100%}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;}
+.filters select,.filters input{border:1px solid #CBD5E1;border-radius:8px;padding:6px 8px;font-size:12px;background:#fff;}
+.filters label{font-size:12px;color:var(--soft);display:flex;gap:6px;align-items:center;}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--soft);margin:6px 0 10px;}
+.empty{padding:40px;text-align:center;color:var(--soft);}
+.ind-name{max-width:420px}
+.muted{color:var(--soft);font-size:11.5px}
+.print-only{display:none}
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  body{background:#fff;font-size:10px}
+  .no-print,.top .right{display:none!important}
+  .print-only{display:block}
+  .panel{box-shadow:none;border:1px solid #DDE5EE;break-inside:auto}
+  tr{break-inside:avoid}
+  .ind-name{max-width:none;min-width:240px}
+  .scroll{max-height:none;overflow:visible;border:none}
+  th{position:static}
+  .b,.flag,.bar span,.stack span,.kpi{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body.agency-print .hide-agency-print{display:none!important}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <div>
+    <h1>Indicadores do Quadro de Cooperação 2023–2027</h1>
+    <div class="sub">Estado face às metas de 2027, completude e qualidade dos dados · apoio ao IMS e ao grupo MERL</div>
+  </div>
+  <div class="right">
+    <span class="pill" id="dataInfo">A carregar…</span>
+    <label class="btn ghost" style="cursor:pointer">Carregar CSV<input type="file" id="csvUpload" accept=".csv" style="display:none"></label>
+    <button class="btn" id="printAll">Gerar PDF</button>
+    <a class="btn ghost" href="index.html">← Painel principal</a>
+  </div>
+</div>
+<div class="sdg"><span style="background:#E5243B"></span><span style="background:#DDA63A"></span><span style="background:#4C9F38"></span><span style="background:#C5192D"></span><span style="background:#FF3A21"></span><span style="background:#26BDE2"></span><span style="background:#FCC30B"></span><span style="background:#A21942"></span><span style="background:#FD6925"></span><span style="background:#DD1367"></span><span style="background:#FD9D24"></span><span style="background:#BF8B2E"></span><span style="background:#3F7E44"></span><span style="background:#0A97D9"></span><span style="background:#56C02B"></span><span style="background:#00689D"></span><span style="background:#19486A"></span></div>
+
+<div class="wrap">
+  <div class="print-only" id="printHead" style="margin-bottom:8px"></div>
+  <div class="note hide-agency-print">Vista de leitura do UN INFO. Os valores oficiais são os do UN INFO; esta página só os organiza. Os números de progresso são calculados a partir do primeiro número de cada campo — confirme os casos importantes no UN INFO. <a href="#metodo">Como ler esta página</a>.</div>
+
+  <div class="kpis hide-agency-print" id="kpis"></div>
+
+  <div class="grid2 hide-agency-print">
+    <div class="panel">
+      <h2>Resumo por efeito</h2>
+      <div class="hint">Completude do último ano fechado (2025) e estado face às metas de 2027, por efeito.</div>
+      <div class="legend" id="legend1"></div>
+      <div style="overflow:auto"><table id="outcomeTable"></table></div>
+    </div>
+    <div class="panel">
+      <h2>Completude por agência</h2>
+      <div class="hint">Indicadores em vigor em 2025 pelos quais cada agência é responsável (um indicador partilhado conta para cada agência). Clique numa linha para filtrar a lista; use «PDF» para o relatório da agência.</div>
+      <div class="scroll" style="max-height:420px"><table id="agencyTable"></table></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 id="listTitle">Lista de indicadores</h2>
+    <div class="hint hide-agency-print">Último valor reportado face à base e à meta de 2027. Os alertas assinalam valores que não devem ser lidos como dados.</div>
+    <div class="filters no-print">
+      <select id="fOutcome"><option value="">Todos os efeitos</option></select>
+      <select id="fType"><option value="">Efeito e produto</option><option>Efeito</option><option>Produto</option></select>
+      <select id="fAgency"><option value="">Todas as agências</option></select>
+      <select id="fStatus"><option value="">Todos os estados</option></select>
+      <label><input type="checkbox" id="fGap"> Só sem valor 2025</label>
+      <label><input type="checkbox" id="fFlag"> Só com alertas</label>
+      <input type="search" id="fSearch" placeholder="Pesquisar indicador…" style="min-width:200px">
+      <span class="muted" id="count"></span>
+    </div>
+    <div class="scroll"><table id="indTable"></table></div>
+  </div>
+
+  <div class="panel hide-agency-print">
+    <h2>Alertas de qualidade</h2>
+    <div class="hint">Valores que precisam de correção no UN INFO antes do relatório de resultados.</div>
+    <div class="scroll" style="max-height:420px"><table id="flagTable"></table></div>
+  </div>
+
+  <div class="panel hide-agency-print" id="metodo">
+    <h2>Como ler esta página</h2>
+    <div class="muted" style="font-size:12.5px;line-height:1.6">
+      <p><b>Fonte:</b> export de indicadores do UN INFO (Quadro de Cooperação de Cabo Verde 2023–2027). A data do export aparece no topo.</p>
+      <p><b>Em vigor em 2025:</b> indicadores com data de fim a partir de 1/1/2025. <b>Sem valor 2025:</b> em vigor, mas sem valor reportado para 2025 (último ano fechado).</p>
+      <p><b>Último valor:</b> o valor mais recente entre 2026, 2025, 2024 e 2023. <b>Progresso</b> = (último valor − base) ÷ (meta 2027 − base); funciona para indicadores que devem subir ou descer.</p>
+      <p><b>Estado:</b> Meta atingida (≥ 100%) · No caminho (50–99%) · Atrasado (0–49%) · A recuar (&lt; 0%) · Rever (escala, sim/não, ou valor não comparável com a base) · Sem dados. Num indicador qualitativo, o estado é «Meta atingida» quando o último valor é igual à meta.</p>
+      <p><b>Valores tratados como «sem dados»:</b> «-», campos vazios, e o valor 0 num indicador de efeito com base igual ou superior a 5 (quase sempre um marcador de «aguarda dados»).</p>
+      <p><b>Agência dos indicadores de efeito:</b> lida das siglas entre parênteses no nome do indicador, quando o campo de agência está vazio.</p>
+      <p>Esta página não mostra nomes de pessoas.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ───────── configuration ─────────
+const CLOSED_YEAR = 2025;                 // last closed reporting year
+const YEARS = [2026,2025,2024,2023];
+// value is not comparable with the baseline (other measure, other unit, annual vs cumulative)
+const NONCOMP = {
+  '1.1.2':'O valor de 2023 é outra medida (população urbana realojada), não comparável com a base.',
+  '2.1.5':'O valor de 2026 corresponde a outra medida («copiar ou mover ficheiros»), não ao proxy usado.',
+  '3.1.10':'Base em % (74%) e valores sem unidade (42).',
+  'OI 15.2':'Base e meta em km², valores em hectares.',
+  'OI 1.5':'Base cumulativa e valores anuais.',
+  'OI 15.3':'Base cumulativa e valor anual.',
+  'OI 3.1':'Valores cumulativos contra meta anual.',
+  'OI 2.4':'Metas anuais decrescentes: comparar com a meta de cada ano, não com a de 2027.'
+};
+const AG_PT = {UNDP:'PNUD',UNICEF:'UNICEF',UNFPA:'UNFPA',WHO:'OMS',ILO:'OIT',FAO:'FAO',IOM:'OIM',UNIDO:'ONUDI',UNEP:'PNUMA',UNESCO:'UNESCO',
+  'UN-HABITAT':'ONU-Habitat','UN HABITAT':'ONU-Habitat',UNODC:'ONUDC',OHCHR:'ACNUDH','UN ECA':'CEA',UNECA:'CEA',ITU:'UIT',UNCTAD:'CNUCED',IFAD:'FIDA',WFP:'PAM',PAM:'PAM',
+  OIT:'OIT',OMS:'OMS',PNUD:'PNUD',OIM:'OIM',ONUDC:'ONUDC'};
+const STATUS = [
+  ['ok','Meta atingida','#10B981'],['on','No caminho','#3B82F6'],['late','Atrasado','#F59E0B'],
+  ['back','A recuar','#EF4444'],['rev','Rever','#8B5CF6'],['na','Sem dados','#CBD5E1']];
+const SLABEL = Object.fromEntries(STATUS.map(s=>[s[0],s[1]]));
+
+// ───────── helpers ─────────
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clean = s => String(s??'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+const isEmpty = s => ['','-','—','nan','none','n/a'].includes(clean(s).toLowerCase());
+function num(s){
+  s = clean(s); if(!s) return null;
+  const m = s.match(/^[A-Za-zÀ-ú:\s]*?(-?\d+(?:[.,]\d+)?)\s*%?/);
+  if(!m) return null;
+  let t = m[1];
+  if(/^\d{1,3}(,\d{3})+$/.test(t)) t = t.replace(/,/g,'');
+  const v = parseFloat(t.replace(',','.'));
+  return isFinite(v) ? v : null;
+}
+const hasText = s => { const c = clean(s); return /\d/.test(c) && /[A-Za-zÀ-ú(]/.test(c.replace(/%/g,'')) && !/^[\d.,\s%-]+$/.test(c); };
+const fmtN = v => v==null ? '—' : (Math.abs(v)>=1000 ? Math.round(v).toLocaleString('pt-PT') : String(+v.toFixed(2)).replace('.',','));
+const pct = v => v==null ? '—' : Math.round(v*100)+'%';
+function agencyName(a){ a = clean(a).toUpperCase().replace(/\s+/g,' '); return AG_PT[a] || AG_PT[a.replace(' ','-')] || a; }
+
+function code(r){
+  const m = clean(r.indicators).match(/^(\d\.\d\.\d+)/); if(m) return m[1];
+  const d = String(r.description||'');
+  const o = d.match(/OI\s*(\d+\.\d+)/); if(o) return 'OI '+o[1];
+  const i = d.match(/invent[aá]rio\s*([\d._]+)/i); if(i) return 'Inv. '+i[1];
+  return 's/ código';
+}
+function agencies(r){
+  let raw = clean(r['agency abbreviations']);
+  if(isEmpty(raw)){
+    const m = clean(r.indicators).match(/\(([A-Z][A-Za-z ,/\-]+)\)\s*$/);
+    raw = m ? m[1] : '';
+  }
+  return [...new Set(raw.split(/[;,/]/).map(a=>agencyName(a)).filter(a=>a && a.length<=12))];
+}
+
+// ───────── model ─────────
+let ROWS = [];
+function build(data){
+  ROWS = data.filter(r=>clean(r.indicators)).map(r=>{
+    const c = code(r);
+    const tipo = clean(r.output) ? 'Produto' : 'Efeito';
+    let oc = (clean(r.outcome).match(/Efeito\s*([\d.]+)/)||[])[1]||''; oc = oc.replace(/\.$/,''); if(oc==='3.1') oc='3';
+    const pr = ((clean(r.output).match(/Produto\s*([\d.]+)/)||[])[1]||'').replace(/[:.]$/,'');
+    const name = clean(r.indicators).replace(/^\d\.\d\.\d+\s*/,'');
+    const bnum = num(r.baseline), tnum = num(r['target 2027']);
+    const flags = [];
+    const vals = {};
+    YEARS.forEach(y=>{
+      let v = r['reached '+y];
+      if(isEmpty(v)){ vals[y]=''; return; }
+      const n = num(v);
+      if(tipo==='Efeito' && n===0 && bnum!=null && bnum>=5){ flags.push(`Valor ${y} = 0 tratado como «sem dados»`); vals[y]=''; return; }
+      if(hasText(v)) flags.push(`Texto no campo de valor ${y}`);
+      vals[y] = clean(v);
+    });
+    let last='', ly=null;
+    for(const y of YEARS){ if(vals[y]){ last=vals[y]; ly=y; break; } }
+    const active = String(r['end date']||'') >= `${CLOSED_YEAR}-01-01`;
+    const gap = active && !vals[CLOSED_YEAR];
+    let lnum = last ? num(last) : null;
+    if(NONCOMP[c]){ flags.push(NONCOMP[c]); lnum = null; }
+    if(active && isEmpty(r['target 2027'])) flags.push('Meta 2027 vazia no UN INFO');
+    // repeated value (same value reported 3+ years in a row)
+    const seq = [2023,2024,2025,2026].map(y=>vals[y]).filter(Boolean);
+    if(seq.length>=3 && new Set(seq).size===1 && bnum!=null && num(seq[0])!==bnum) flags.push('Mesmo valor repetido em todos os anos');
+    let prog=null, st;
+    if(!last) st='na';
+    else if(bnum!=null && tnum!=null && lnum!=null && tnum!==bnum){
+      prog = (lnum-bnum)/(tnum-bnum);
+      st = prog>=1?'ok':prog>=.5?'on':prog>=0?'late':'back';
+    } else if(!NONCOMP[c] && clean(last).toLowerCase()===clean(r['target 2027']).toLowerCase() && !isEmpty(r['target 2027'])) st='ok';
+    else st='rev';
+    return {c,tipo,oc,pr,name,ag:agencies(r),unit:clean(r.unit),base:clean(r.baseline),meta:clean(r['target 2027']),
+      v25:vals[2025],v26:vals[2026],last,ly,bnum,tnum,lnum,prog,st,active,gap,flags,
+      narr:clean(r['narrative 2026'])||clean(r['narrative 2025'])};
+  }).sort((a,b)=>a.oc.localeCompare(b.oc)||(a.tipo===b.tipo?0:a.tipo==='Efeito'?-1:1)||a.pr.localeCompare(b.pr)||a.c.localeCompare(b.c));
+}
+
+// ───────── render ─────────
+let AG_FILTER='';
+function kpis(){
+  const act = ROWS.filter(r=>r.active), gap = act.filter(r=>r.gap);
+  const by = t => [act.filter(r=>r.tipo===t).length, gap.filter(r=>r.tipo===t).length];
+  const [ae,ge] = by('Efeito'), [ap,gp] = by('Produto');
+  const cnt = k => ROWS.filter(r=>r.st===k).length;
+  const flagged = ROWS.filter(r=>r.flags.length).length;
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="l">Indicadores</div><div class="v">${ROWS.length}</div><div class="s">${ROWS.filter(r=>r.tipo==='Efeito').length} de efeito · ${ROWS.filter(r=>r.tipo==='Produto').length} de produto · ${act.length} em vigor em ${CLOSED_YEAR}</div></div>
+    <div class="kpi warn"><div class="l">Sem valor ${CLOSED_YEAR}</div><div class="v">${gap.length} de ${act.length}</div><div class="s">${pct(gap.length/act.length)} · efeito ${ge}/${ae} · produto ${gp}/${ap}</div></div>
+    <div class="kpi good"><div class="l">Meta atingida ou no caminho</div><div class="v">${cnt('ok')+cnt('on')}</div><div class="s">${cnt('ok')} atingidas · ${cnt('on')} no caminho</div></div>
+    <div class="kpi warn"><div class="l">Atrasados ou a recuar</div><div class="v">${cnt('late')+cnt('back')}</div><div class="s">${cnt('late')} atrasados · ${cnt('back')} a recuar</div></div>
+    <div class="kpi"><div class="l">Com alertas de qualidade</div><div class="v">${flagged}</div><div class="s">${cnt('rev')} para rever · ${cnt('na')} sem dados</div></div>`;
+}
+function stackBar(list){
+  const n = list.length||1;
+  return `<div class="stack">${STATUS.map(([k,,col])=>{const c=list.filter(r=>r.st===k).length;return c?`<span title="${SLABEL[k]}: ${c}" style="width:${c/n*100}%;background:${col}"></span>`:''}).join('')}</div>`;
+}
+function outcomeTable(){
+  document.getElementById('legend1').innerHTML = STATUS.map(([,l,c])=>`<span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${c};margin-right:4px;vertical-align:-1px"></span>${l}</span>`).join('');
+  const ocs = [...new Set(ROWS.map(r=>r.oc))].filter(Boolean).sort();
+  const line = (label,list)=>{ const act=list.filter(r=>r.active), gap=act.filter(r=>r.gap);
+    const c=k=>list.filter(r=>r.st===k).length;
+    return `<tr><td><b>${label}</b></td><td class="num">${list.length}</td><td class="num">${act.length?pct(1-gap.length/act.length):'—'}</td><td class="num">${gap.length}</td><td>${stackBar(list)}</td><td class="num">${c('ok')}</td><td class="num">${c('on')}</td><td class="num">${c('late')}</td><td class="num">${c('back')}</td><td class="num">${c('rev')+c('na')}</td></tr>`; };
+  document.getElementById('outcomeTable').innerHTML = `<thead><tr><th>Efeito</th><th class="num">Indic.</th><th class="num">Com valor ${CLOSED_YEAR}</th><th class="num">Sem valor</th><th>Estado</th><th class="num">Atingida</th><th class="num">No caminho</th><th class="num">Atrasado</th><th class="num">A recuar</th><th class="num">Rever / s/ dados</th></tr></thead><tbody>
+    ${ocs.map(o=>line('Efeito '+o, ROWS.filter(r=>r.oc===o))).join('')}${line('Total', ROWS).replace('<tr>','<tr style="background:#F7FAFD">')}</tbody>`;
+}
+function agencyStats(){
+  const m = {};
+  ROWS.forEach(r=>r.ag.forEach(a=>{ (m[a]=m[a]||[]).push(r); }));
+  return Object.entries(m).map(([a,list])=>{ const act=list.filter(r=>r.active), gap=act.filter(r=>r.gap);
+    return {a,list,act:act.length,gap:gap.length,flags:list.filter(r=>r.flags.length).length,rate:act.length?1-gap.length/act.length:null}; })
+    .sort((x,y)=>y.gap-x.gap||y.act-x.act||x.a.localeCompare(y.a));
+}
+function agencyTable(){
+  const st = agencyStats();
+  document.getElementById('agencyTable').innerHTML = `<thead><tr><th>Agência</th><th class="num">Em vigor</th><th class="num">Sem valor ${CLOSED_YEAR}</th><th>Completude</th><th class="num">Alertas</th><th class="no-print"></th></tr></thead><tbody>
+    ${st.map(s=>`<tr class="click ${AG_FILTER===s.a?'sel':''}" data-ag="${esc(s.a)}"><td><b>${esc(s.a)}</b></td><td class="num">${s.act}</td><td class="num">${s.gap?`<span class="b miss">${s.gap}</span>`:'<span class="b ok">0</span>'}</td>
+      <td><div style="display:flex;gap:6px;align-items:center"><div class="bar" style="flex:1"><span style="width:${(s.rate||0)*100}%"></span></div><span class="muted">${pct(s.rate)}</span></div></td><td class="num">${s.flags||'—'}</td>
+      <td class="no-print"><button class="btn small" data-pdf="${esc(s.a)}">PDF</button></td></tr>`).join('')}</tbody>`;
+  const sel = document.getElementById('fAgency');
+  if(sel.options.length<=1) st.map(s=>s.a).sort().forEach(a=>sel.add(new Option(a,a)));
+}
+function filtered(){
+  const o=fOutcome.value,t=fType.value,a=fAgency.value,s=fStatus.value,q=fSearch.value.trim().toLowerCase();
+  return ROWS.filter(r=>(!o||r.oc===o)&&(!t||r.tipo===t)&&(!a||r.ag.includes(a))&&(!s||r.st===s)&&(!fGap.checked||r.gap)&&(!fFlag.checked||r.flags.length)&&(!q||(r.c+' '+r.name).toLowerCase().includes(q)));
+}
+function indTable(){
+  const list = filtered();
+  document.getElementById('count').textContent = `${list.length} de ${ROWS.length} indicadores`;
+  document.getElementById('indTable').innerHTML = `<thead><tr><th>Código</th><th>Tipo</th><th>Indicador</th><th>Agências</th><th>Base</th><th>Meta 2027</th><th>Valor ${CLOSED_YEAR}</th><th>Último valor</th><th>Progresso</th><th>Estado</th><th>Alertas</th></tr></thead><tbody>
+  ${list.length?list.map(r=>`<tr>
+    <td><b>${esc(r.c)}</b><div class="muted">Ef. ${esc(r.oc)}${r.pr?' · '+esc(r.pr):''}</div></td>
+    <td>${r.tipo}</td>
+    <td class="ind-name">${esc(r.name)}</td>
+    <td>${esc(r.ag.join(', ')||'—')}</td>
+    <td>${esc(r.base.slice(0,40)||'—')}</td>
+    <td>${esc(r.meta.slice(0,40)||'—')}</td>
+    <td>${r.v25?esc(r.v25.slice(0,30)):(r.active?'<span class="b miss">Em falta</span>':'<span class="muted">n/a</span>')}</td>
+    <td>${r.last?esc(r.last.slice(0,30))+` <span class="muted">(${r.ly})</span>`:'—'}</td>
+    <td>${r.prog==null?'<span class="muted">—</span>':`<div style="display:flex;gap:6px;align-items:center"><div class="bar"><span style="width:${Math.max(0,Math.min(1,r.prog))*100}%"></span></div><span class="muted">${pct(r.prog)}</span></div>`}</td>
+    <td><span class="b ${r.st}">${SLABEL[r.st]}</span></td>
+    <td>${r.flags.map(f=>`<span class="flag">${esc(f)}</span>`).join('')}</td></tr>`).join(''):`<tr><td colspan="11" class="empty">Nenhum indicador com estes filtros.</td></tr>`}</tbody>`;
+}
+function flagTable(){
+  const list = ROWS.filter(r=>r.flags.length);
+  document.getElementById('flagTable').innerHTML = `<thead><tr><th>Código</th><th>Indicador</th><th>Agências</th><th>Alerta</th></tr></thead><tbody>
+    ${list.map(r=>`<tr><td><b>${esc(r.c)}</b></td><td class="ind-name">${esc(r.name.slice(0,110))}</td><td>${esc(r.ag.join(', ')||'—')}</td><td>${r.flags.map(f=>`<span class="flag">${esc(f)}</span>`).join('')}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sem alertas.</td></tr>'}</tbody>`;
+}
+function renderAll(){
+  if(!ROWS.length){ document.getElementById('kpis').innerHTML='<div class="empty">Sem dados de indicadores. Carregue o export de indicadores do UN INFO (CSV).</div>'; return; }
+  kpis(); outcomeTable(); agencyTable(); indTable(); flagTable();
+  const so = document.getElementById('fOutcome');
+  if(so.options.length<=1) [...new Set(ROWS.map(r=>r.oc))].filter(Boolean).sort().forEach(o=>so.add(new Option('Efeito '+o,o)));
+  const ss = document.getElementById('fStatus');
+  if(ss.options.length<=1) STATUS.forEach(([k,l])=>ss.add(new Option(l,k)));
+}
+
+// ───────── events ─────────
+['fOutcome','fType','fStatus','fGap','fFlag','fSearch'].forEach(id=>document.getElementById(id).addEventListener('input',indTable));
+document.getElementById('fAgency').addEventListener('input',e=>{ AG_FILTER=e.target.value; agencyTable(); indTable(); });
+document.getElementById('agencyTable').addEventListener('click',e=>{
+  const pdf = e.target.closest('[data-pdf]');
+  if(pdf){ e.stopPropagation(); printAgency(pdf.dataset.pdf); return; }
+  const tr = e.target.closest('tr[data-ag]'); if(!tr) return;
+  AG_FILTER = AG_FILTER===tr.dataset.ag ? '' : tr.dataset.ag;
+  fAgency.value = AG_FILTER; agencyTable(); indTable();
+  document.getElementById('listTitle').scrollIntoView({behavior:'smooth'});
+});
+let DATA_DATE='';
+function setPrintHead(title){
+  document.getElementById('printHead').innerHTML = `<div style="font-size:16px;font-weight:800;color:#003366">${esc(title)}</div><div class="muted">Fonte: UN INFO, export de indicadores ${esc(DATA_DATE)} · gerado em ${new Date().toLocaleDateString('pt-PT')}</div>`;
+}
+function printAgency(a){
+  const prev = {ag:fAgency.value,gap:fGap.checked,flag:fFlag.checked,o:fOutcome.value,t:fType.value,s:fStatus.value,q:fSearch.value};
+  fOutcome.value='';fType.value='';fStatus.value='';fSearch.value='';fGap.checked=false;fFlag.checked=false;fAgency.value=a;AG_FILTER=a;
+  agencyTable(); indTable();
+  const s = agencyStats().find(x=>x.a===a);
+  document.getElementById('listTitle').textContent = `Indicadores de ${a} · ${s.act} em vigor em ${CLOSED_YEAR}, ${s.gap} sem valor ${CLOSED_YEAR}`;
+  setPrintHead(`Indicadores do Quadro de Cooperação — ${a}`);
+  document.body.classList.add('agency-print');
+  const done = ()=>{ document.body.classList.remove('agency-print'); document.getElementById('listTitle').textContent='Lista de indicadores';
+    fAgency.value=prev.ag;AG_FILTER=prev.ag;fGap.checked=prev.gap;fFlag.checked=prev.flag;fOutcome.value=prev.o;fType.value=prev.t;fStatus.value=prev.s;fSearch.value=prev.q;
+    agencyTable(); indTable(); window.removeEventListener('afterprint',done); };
+  window.addEventListener('afterprint',done);
+  setTimeout(()=>window.print(),150);
+}
+document.getElementById('printAll').addEventListener('click',()=>{ setPrintHead('Indicadores do Quadro de Cooperação — estado e lacunas'); window.print(); });
+
+// ───────── data loading ─────────
+function parse(text,label){
+  Papa.parse(text,{header:true,skipEmptyLines:true,complete:res=>{
+    const rows = res.data||[];
+    if(!rows.length || rows[0].indicators===undefined || rows[0].baseline===undefined){
+      document.getElementById('dataInfo').textContent='Ficheiro não reconhecido como export de indicadores'; return; }
+    DATA_DATE = label; build(rows); renderAll();
+    document.getElementById('dataInfo').textContent = `Export ${label} · ${ROWS.length} indicadores`;
+  }});
+}
+document.getElementById('csvUpload').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const m=f.name.match(/(\d{4})-?(\d{2})-?(\d{2})/); const label=m?`${m[3]}/${m[2]}/${m[1]}`:f.name;
+  f.text().then(t=>parse(t,label));
+});
+async function loadLatest(){
+  try{
+    const m = await fetch('historico/manifest.json?v='+Date.now(),{cache:'no-store'}).then(r=>r.json());
+    const snaps = (m.snapshots||[]).filter(s=>(s.files||[]).some(f=>/^Indicator_Export/i.test(f))).sort((a,b)=>b.date.localeCompare(a.date));
+    if(!snaps.length) throw new Error('no snapshot');
+    const s = snaps[0], f = s.files.find(f=>/^Indicator_Export/i.test(f));
+    const txt = await fetch(encodeURI(`historico/${s.date}/${f}`)+'?v='+Date.now(),{cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); });
+    const [y,mo,d] = s.date.split('-'); parse(txt, `${d}/${mo}/${y}`);
+  }catch(e){
+    console.info('[Indicadores] histórico indisponível',e);
+    document.getElementById('dataInfo').textContent='Carregue o export de indicadores (CSV)';
+    renderAll();
+  }
+}
+loadLatest();
+</script>
+</body>
+</html>
