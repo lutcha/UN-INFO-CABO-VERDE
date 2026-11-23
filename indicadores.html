@@ -70,7 +70,8 @@ tr.sel td{background:#E6F4FB}
   .panel{box-shadow:none;border:1px solid #DDE5EE;break-inside:auto}
   tr{break-inside:avoid}
   .ind-name{max-width:none;min-width:240px}
-  .scroll{max-height:none;overflow:visible;border:none}
+  .scroll{max-height:none!important;overflow:visible!important;border:none}
+  .grid2{display:block}
   th{position:static}
   .b,.flag,.bar span,.stack span,.kpi{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   body.agency-print .hide-agency-print{display:none!important}
@@ -513,6 +514,6 @@ async function loadLatest(){
 loadLatest();
 </script>
 <script src="print-footer.js"></script>
-<script>window.PRINT_FOOTER = () => `Fonte: UN INFO, export de indicadores de ${DATA_DATE||'—'} · Quadro de Cooperação de Cabo Verde 2023–2027 · relatório gerado em ${new Date().toLocaleDateString('pt-PT')}`;</script>
+<script>window.PRINT_FOOTER = () => `Fonte: UN INFO, export de indicadores de ${DATA_DATE||'—'} · gerado em ${new Date().toLocaleDateString('pt-PT')}`;</script>
 </body>
 </html>
