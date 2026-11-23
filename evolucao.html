@@ -581,5 +581,7 @@ document.getElementById('btnPdf').addEventListener('click',()=>{ if(chart){ char
 
 <!-- PUBLIC MODE: sem filtro nem coluna de ponto focal -->
 <style>.filter-group:has(#fFocal){display:none!important;}</style>
+<script src="print-footer.js"></script>
+<script>window.PRINT_FOOTER = () => { const t=id=>{const s=document.getElementById(id);return s&&s.selectedIndex>=0?s.options[s.selectedIndex].text:'—';}; return `Fonte: UN INFO, extrações de ${t('fBase')} e ${t('fTarget')} · Quadro de Cooperação de Cabo Verde 2023–2027 · relatório gerado em ${new Date().toLocaleDateString('pt-PT')}`; };</script>
 </body>
 </html>

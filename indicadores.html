@@ -512,5 +512,7 @@ async function loadLatest(){
 }
 loadLatest();
 </script>
+<script src="print-footer.js"></script>
+<script>window.PRINT_FOOTER = () => `Fonte: UN INFO, export de indicadores de ${DATA_DATE||'—'} · Quadro de Cooperação de Cabo Verde 2023–2027 · relatório gerado em ${new Date().toLocaleDateString('pt-PT')}`;</script>
 </body>
 </html>
