@@ -119,7 +119,8 @@ tr.sel td{background:#E6F4FB}
     <div class="filters no-print">
       <select id="agSel"></select>
       <button class="btn small" id="agXlsx">Excel da agência</button>
-      <button class="btn small ghost" style="border:1px solid #CBD5E1" id="agMail">Copiar texto do email</button>
+      <button class="btn small ghost" style="border:1px solid #CBD5E1" id="agMail">Copiar email (PT)</button>
+      <button class="btn small ghost" style="border:1px solid #CBD5E1" id="agMailEn">Copiar email (EN)</button>
       <button class="btn small ghost" style="border:1px solid #CBD5E1" id="allXlsx">Excel completo (todas as agências)</button>
       <span class="muted" id="agMsg"></span>
     </div>
@@ -182,6 +183,12 @@ const NONCOMP = {
 const AG_PT = {UNDP:'PNUD',UNICEF:'UNICEF',UNFPA:'UNFPA',WHO:'OMS',ILO:'OIT',FAO:'FAO',IOM:'OIM',UNIDO:'ONUDI',UNEP:'PNUMA',UNESCO:'UNESCO',
   'UN-HABITAT':'ONU-Habitat','UN HABITAT':'ONU-Habitat',UNODC:'ONUDC',OHCHR:'ACNUDH','UN ECA':'CEA',UNECA:'CEA',ITU:'UIT',UNCTAD:'CNUCED',IFAD:'FIDA',WFP:'PAM',PAM:'PAM',
   OIT:'OIT',OMS:'OMS',PNUD:'PNUD',OIM:'OIM',ONUDC:'ONUDC'};
+// English acronym of each agency, shown next to the Portuguese one: "PNUD (UNDP)"
+const AG_EN = {PNUD:'UNDP',OMS:'WHO',OIT:'ILO',OIM:'IOM',ONUDI:'UNIDO',PNUMA:'UNEP','ONU-Habitat':'UN-Habitat',ONUDC:'UNODC',ACNUDH:'OHCHR',
+  CEA:'UNECA',UIT:'ITU',CNUCED:'UNCTAD',FIDA:'IFAD',PAM:'WFP','ONU Mulheres':'UN Women'};
+const agL = a => AG_EN[a] && AG_EN[a] !== a ? `${a} (${AG_EN[a]})` : a;
+const agEN = a => AG_EN[a] || a;
+const agList = (list, skip) => list.filter(x=>x!==skip).map(agL).join(', ');
 const STATUS = [
   ['ok','Meta atingida','#10B981'],['on','No caminho','#3B82F6'],['late','Atrasado','#F59E0B'],
   ['back','A recuar','#EF4444'],['rev','Rever','#8B5CF6'],['na','Sem dados','#CBD5E1']];
@@ -331,11 +338,11 @@ function agencyStats(){
 function agencyTable(){
   const st = agencyStats();
   document.getElementById('agencyTable').innerHTML = `<thead><tr><th>Agência</th><th class="num">Em vigor</th><th class="num">Sem valor ${CLOSED_YEAR}</th><th>Completude</th><th class="num">Alertas</th><th class="no-print"></th></tr></thead><tbody>
-    ${st.map(s=>`<tr class="click ${AG_FILTER===s.a?'sel':''}" data-ag="${esc(s.a)}"><td><b>${esc(s.a)}</b></td><td class="num">${s.act}</td><td class="num">${s.gap?`<span class="b miss">${s.gap}</span>`:'<span class="b ok">0</span>'}</td>
+    ${st.map(s=>`<tr class="click ${AG_FILTER===s.a?'sel':''}" data-ag="${esc(s.a)}"><td><b>${esc(agL(s.a))}</b></td><td class="num">${s.act}</td><td class="num">${s.gap?`<span class="b miss">${s.gap}</span>`:'<span class="b ok">0</span>'}</td>
       <td><div style="display:flex;gap:6px;align-items:center"><div class="bar" style="flex:1"><span style="width:${(s.rate||0)*100}%"></span></div><span class="muted">${pct(s.rate)}</span></div></td><td class="num">${s.flags||'—'}</td>
       <td class="no-print"><button class="btn small" data-pdf="${esc(s.a)}">PDF</button></td></tr>`).join('')}</tbody>`;
   const sel = document.getElementById('fAgency');
-  if(sel.options.length<=1) st.map(s=>s.a).sort().forEach(a=>sel.add(new Option(a,a)));
+  if(sel.options.length<=1) st.map(s=>s.a).sort().forEach(a=>sel.add(new Option(agL(a),a)));
 }
 function filtered(){
   const o=fOutcome.value,t=fType.value,a=fAgency.value,s=fStatus.value,q=fSearch.value.trim().toLowerCase();
@@ -349,7 +356,7 @@ function indTable(){
     <td><b>${esc(r.c)}</b><div class="muted">Ef. ${esc(r.oc)}${r.pr?' · '+esc(r.pr):''}</div></td>
     <td>${r.tipo}</td>
     <td class="ind-name">${esc(r.name)}<div class="desc" title="${esc(r.prDesc||r.ocDesc)}">${r.pr?`<b>Produto ${esc(r.pr)}:</b> ${esc(r.prDesc.slice(0,140))}${r.prDesc.length>140?'…':''}`:`<b>Efeito ${esc(r.oc)}:</b> ${esc(r.ocDesc.slice(0,140))}${r.ocDesc.length>140?'…':''}`}</div><div class="desc">Dado: ${esc(r.who)}</div></td>
-    <td>${esc(r.ag.join(', ')||'—')}</td>
+    <td>${esc(agList(r.ag)||'—')}</td>
     <td>${esc(r.base.slice(0,40)||'—')}</td>
     <td>${esc(r.meta.slice(0,40)||'—')}</td>
     <td>${r.v25?esc(r.v25.slice(0,30)):(r.active?'<span class="b miss">Em falta</span>':'<span class="muted">n/a</span>')}</td>
@@ -361,7 +368,7 @@ function indTable(){
 function flagTable(){
   const list = ROWS.filter(r=>r.flags.length);
   document.getElementById('flagTable').innerHTML = `<thead><tr><th>Código</th><th>Indicador</th><th>Agências</th><th>Alerta</th></tr></thead><tbody>
-    ${list.map(r=>`<tr><td><b>${esc(r.c)}</b></td><td class="ind-name">${esc(r.name.slice(0,110))}</td><td>${esc(r.ag.join(', ')||'—')}</td><td>${r.flags.map(f=>`<span class="flag">${esc(f)}</span>`).join('')}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sem alertas.</td></tr>'}</tbody>`;
+    ${list.map(r=>`<tr><td><b>${esc(r.c)}</b></td><td class="ind-name">${esc(r.name.slice(0,110))}</td><td>${esc(agList(r.ag)||'—')}</td><td>${r.flags.map(f=>`<span class="flag">${esc(f)}</span>`).join('')}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sem alertas.</td></tr>'}</tbody>`;
 }
 // ───────── per-agency follow-up ─────────
 const ART = {PNUD:'o','ONU-Habitat':'o',ONUDC:'o',UNFPA:'o',UNICEF:'o'};
@@ -374,10 +381,10 @@ const miss = r => r.gap ? r.todo.split(' — ')[0].split('. Verificar')[0].toLow
 function agPanel(){
   const sel = document.getElementById('agSel');
   const ags = [...new Set(ROWS.filter(r=>r.action).flatMap(r=>r.ag))].sort();
-  if(!sel.options.length || sel.dataset.n!=ags.length){ const cur=sel.value; sel.innerHTML=''; ags.forEach(a=>sel.add(new Option(a,a))); sel.dataset.n=ags.length; if(ags.includes(cur)) sel.value=cur; }
+  if(!sel.options.length || sel.dataset.n!=ags.length){ const cur=sel.value; sel.innerHTML=''; ags.forEach(a=>sel.add(new Option(agL(a),a))); sel.dataset.n=ags.length; if(ags.includes(cur)) sel.value=cur; }
   const a = sel.value; if(!a){ document.getElementById('agBody').innerHTML='<div class="empty">Nenhuma agência com indicadores em falta.</div>'; return; }
   const g = agGroups(a);
-  const row = r => `<tr><td><b>${esc(r.c)}</b></td><td class="ind-name">${esc(r.name)}<div class="desc">${esc(where(r))}${r.prDesc?': '+esc(short(r.prDesc,120)):''}</div></td><td>${r.last?esc(r.last.slice(0,30))+` <span class="muted">(${r.ly})</span>`:'—'}</td><td class="todo">${esc(miss(r))}</td>${INTERNO?`<td class="muted">${esc(r.resp[a]||'(não indicado)')}</td>`:''}<td class="muted">${esc(r.ag.filter(x=>x!==a).join(', ')||'—')}</td></tr>`;
+  const row = r => `<tr><td><b>${esc(r.c)}</b></td><td class="ind-name">${esc(r.name)}<div class="desc">${esc(where(r))}${r.prDesc?': '+esc(short(r.prDesc,120)):''}</div></td><td>${r.last?esc(r.last.slice(0,30))+` <span class="muted">(${r.ly})</span>`:'—'}</td><td class="todo">${esc(miss(r))}</td>${INTERNO?`<td class="muted">${esc(r.resp[a]||'(não indicado)')}</td>`:''}<td class="muted">${esc(agList(r.ag,a)||'—')}</td></tr>`;
   const tbl = list => `<div class="scroll" style="max-height:none"><table><thead><tr><th>Código</th><th>Indicador</th><th>Último valor</th><th>O que falta</th>${INTERNO?'<th>Responsável no UN INFO</th>':''}<th>Partilhado com</th></tr></thead><tbody>${list.map(row).join('')}</tbody></table></div>`;
   document.getElementById('agBody').innerHTML = `
     <div class="agsum"><div><b>${g.prod.length}</b>produto sem valor ${CLOSED_YEAR}</div><div><b>${g.efe.length}</b>efeito sem valor ${CLOSED_YEAR}</div><div><b>${g.ver.length}</b>a verificar</div></div>
@@ -388,7 +395,7 @@ function agPanel(){
 function emailText(a){
   const g = agGroups(a), art = ART[a]||'a', pel = art==='o'?'pelo':'pela', n = g.prod.length+g.efe.length;
   const li = r => `- ${r.c==='s/ código'?'Sem código':r.c} – ${short(r.name)} (${where(r)}): ${miss(r)}`;
-  const L = [`Assunto: UN INFO – Indicadores ${a}: ${n} por completar antes do reporte anual (até ${PRAZO.split(', ')[1]})`, '',
+  const L = [`Assunto: UN INFO – Indicadores ${agL(a)}: ${n} por completar antes do reporte anual (até ${PRAZO.split(', ')[1]})`, '',
     'Caros colegas,', '',
     `Estamos a fechar os indicadores do Quadro de Cooperação no UN INFO para o reporte anual à sede (IMS). Na extração de ${DATA_DATE}, ${art} ${a} tem ${n} indicador${n!==1?'es':''} sem valor de ${CLOSED_YEAR}${g.ver.length?` e ${g.ver.length} a verificar`:''}. Em anexo seguem os detalhes de cada um, com o código, o efeito e o produto, para os encontrar rapidamente no UN INFO.`, ''];
   if(g.prod.length) L.push(`Indicadores de produto (reportados ${pel} ${a}):`, ...g.prod.map(li), '');
@@ -397,15 +404,48 @@ function emailText(a){
   L.push(`O prazo é ${PRAZO}. Se já atualizou, obrigado: basta responder «feito». Se não for possível até lá, indique-me a data em que consegue. Também posso marcar 15 minutos para fazermos isto juntos no sistema.`, '', 'Com os melhores cumprimentos,');
   return L.join('\n');
 }
+const PRAZO_EN = 'Thursday, 26 November';
+function emailTextEN(a){
+  const g = agGroups(a), A = agEN(a), n = g.prod.length+g.efe.length;
+  const lower = s => s.charAt(0).toLowerCase()+s.slice(1);
+  const FLAG_EN = [
+    [/^Texto no campo de valor (\d{4})/, '$1 value field contains text'],
+    [/^Valor (\d{4}) = 0 tratado como «sem dados»/, '$1 value = 0, treated as no data'],
+    [/^Mesmo valor repetido em todos os anos/, 'same value repeated in every year'],
+    [/^Meta (\d{4}) vazia no UN INFO/, '$1 target empty in UN INFO'],
+    [/^Valores cumulativos contra meta anual/, 'cumulative values against an annual target'],
+    [/^Base cumulativa e valor(es)? anua(l|is)/, 'cumulative baseline, annual values'],
+    [/^Base e meta em km², valores em hectares/, 'baseline and target in km², values in hectares'],
+    [/^Base em % \(([^)]*)\) e valores sem unidade \(([^)]*)\)/, 'baseline in % ($1), values without unit ($2)'],
+    [/^Metas anuais decrescentes.*?(\d{4})/, 'decreasing annual targets: compare with each year\'s target, not with $1'],
+    [/^O valor de (\d{4}) (é|corresponde a) outra medida.*/, 'the $1 value measures something else and is not comparable with the baseline'],
+  ];
+  const flagEN = f => { f = f.replace(/\.$/,''); for(const [re,to] of FLAG_EN) if(re.test(f)) return f.replace(re,to); return f; };
+  const missEN = r => {
+    let s = r.gap ? ('value '+CLOSED_YEAR + (r.narr25 ? '' : ' and narrative '+CLOSED_YEAR)) : '';
+    if(r.flags.length) s += (s ? '; ' : '') + 'check: ' + r.flags.map(flagEN).join('; ');
+    return r.gap ? s.split('; check:')[0] : s;
+  };
+  const whereEN = r => r.pr ? `Output ${r.pr}` : `Outcome ${r.oc}`;
+  const li = r => `- ${r.c==='s/ código'?'No code':r.c} – ${short(r.name)} (${whereEN(r)}): ${missEN(r)}`;
+  const L = [`Subject: UN INFO – ${A} indicators: ${n} to complete before the annual report (by ${PRAZO_EN.split(', ')[1]})`, '',
+    'Dear colleagues,', '',
+    `We are finalising the Cooperation Framework indicators in UN INFO for the annual reporting to headquarters (IMS). In the ${DATA_DATE} extraction, ${A} has ${n} indicator${n!==1?'s':''} without a ${CLOSED_YEAR} value${g.ver.length?` and ${g.ver.length} to check`:''}. Please find attached the details of each one, with its code, outcome and output, so it can be found quickly in UN INFO.`, ''];
+  if(g.prod.length) L.push(`Output indicators (reported by ${A}):`, ...g.prod.map(li), '');
+  if(g.efe.length) L.push(`Outcome indicators (national data): the value depends on national institutions such as the National Statistics Institute (INE), not on the agency. We only ask you to confirm whether an official ${CLOSED_YEAR} figure is already available. If not, please note in the narrative the source and when the data is expected.`, ...g.efe.map(li), '');
+  if(g.ver.length) L.push('To check (a value exists but cannot be read as data without confirmation):', ...g.ver.map(li), '');
+  L.push(`The deadline is ${PRAZO_EN}. If you have already updated, thank you: just reply "done". If this date is not possible, please let me know when you can. I can also set up 15 minutes to do it together in the system.`, '', 'Best regards,');
+  return L.join('\n');
+}
 // ───────── Excel export (SheetJS) ─────────
 const COLS_ALL = [['Código',r=>r.c,11],['Tipo',r=>r.tipo,9],['Efeito',r=>r.oc,7],['Descrição do efeito',r=>r.ocDesc,45],['Produto',r=>r.pr,8],['Enunciado do produto',r=>r.prDesc,45],
-  ['Indicador',r=>r.name,55],['Agências',r=>r.ag.join(', '),16],['Quem fornece o dado',r=>r.who,16],['Unidade',r=>r.unit,9],['Base',r=>r.base,14],['Meta 2027',r=>r.meta,14],
+  ['Indicador',r=>r.name,55],['Agências',r=>agList(r.ag),18],['Quem fornece o dado',r=>r.who,16],['Unidade',r=>r.unit,9],['Base',r=>r.base,14],['Meta 2027',r=>r.meta,14],
   ['Valor 2025',r=>r.v25,12],['Valor 2026',r=>r.v26,12],['Último valor',r=>r.last,14],['Ano',r=>r.ly,6],['Progresso para a meta',r=>r.prog==null?'':Math.round(r.prog*100)/100,10],
   ['Estado',r=>SLABEL[r.st],13],['Em vigor em 2025',r=>r.active?'Sim':'Não',8],['Sem valor 2025',r=>r.gap?'Sim':'Não',8],['O que falta / verificar',r=>r.todo,45],
   ['Fonte / meios de verificação (UN INFO)',r=>r.mov,45],['Narrativa mais recente (UN INFO)',r=>r.narr,60]];
-function agCols(a){ return [['Agência',()=>a,12],['Código',r=>r.c,11],['Tipo',r=>r.tipo,9],['Efeito',r=>r.oc,7],['Descrição do efeito',r=>r.ocDesc,42],['Produto',r=>r.pr,8],
+function agCols(a){ return [['Agência',()=>agL(a),16],['Código',r=>r.c,11],['Tipo',r=>r.tipo,9],['Efeito',r=>r.oc,7],['Descrição do efeito',r=>r.ocDesc,42],['Produto',r=>r.pr,8],
   ['Enunciado do produto',r=>r.prDesc,42],['Indicador',r=>r.name,50],['Quem fornece o dado',r=>r.who,16],['Último valor',r=>r.last||'—',14],['Ano',r=>r.ly,6],['O que falta',r=>r.todo,40],
-  ...(INTERNO?[['Responsável indicado no UN INFO',r=>r.resp[a]||'(não indicado)',22]]:[]),['Partilhado com',r=>r.ag.filter(x=>x!==a).join(', '),14],['Resposta da agência',()=>'',30]]; }
+  ...(INTERNO?[['Responsável indicado no UN INFO',r=>r.resp[a]||'(não indicado)',22]]:[]),['Partilhado com',r=>agList(r.ag,a),16],['Resposta da agência',()=>'',30]]; }
 function sheet(cols, rows, title){
   const aoa = [[title],[],cols.map(c=>c[0]),...rows.map(r=>cols.map(c=>{const v=c[1](r);return v==null?'':v;}))];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -418,7 +458,7 @@ function needXLSX(){ if(typeof XLSX==='undefined'){ document.getElementById('agM
 function downloadAgency(a){
   if(!needXLSX()) return;
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, sheet(agCols(a), agRows(a), `UN INFO · Indicadores ${a} · extração de ${DATA_DATE} · prazo: ${PRAZO}`), 'Indicadores');
+  XLSX.utils.book_append_sheet(wb, sheet(agCols(a), agRows(a), `UN INFO · Indicadores ${agL(a)} · extração de ${DATA_DATE} · prazo: ${PRAZO}`), 'Indicadores');
   XLSX.writeFile(wb, `UNINFO_Indicadores_${a.replace(/-/g,'')}_${fileTag()}.xlsx`);
 }
 function downloadAll(){
@@ -428,7 +468,7 @@ function downloadAll(){
   XLSX.utils.book_append_sheet(wb, sheet(COLS_ALL, ROWS.filter(r=>r.gap), `Indicadores em vigor sem valor ${CLOSED_YEAR}`), 'Lacunas '+CLOSED_YEAR);
   const ags = [...new Set(ROWS.filter(r=>r.action).flatMap(r=>r.ag))].sort();
   const pairs = ags.flatMap(a=>agRows(a).map(r=>({a,r})));
-  const cols = agCols('').map(([h,f,w])=>[h, p=>h==='Agência'?p.a:(h.startsWith('Responsável')?(p.r.resp[p.a]||'(não indicado)'):(h==='Partilhado com'?p.r.ag.filter(x=>x!==p.a).join(', '):f(p.r))), w]).filter(c=>c[0]!=='Resposta da agência');
+  const cols = agCols('').map(([h,f,w])=>[h, p=>h==='Agência'?agL(p.a):(h.startsWith('Responsável')?(p.r.resp[p.a]||'(não indicado)'):(h==='Partilhado com'?agList(p.r.ag,p.a):f(p.r))), w]).filter(c=>c[0]!=='Resposta da agência');
   XLSX.utils.book_append_sheet(wb, sheet(cols, pairs, 'Indicadores a completar ou verificar, por agência'), 'Por agência');
   XLSX.writeFile(wb, `UNINFO_Indicadores_${fileTag()}.xlsx`);
 }
@@ -446,12 +486,14 @@ function renderAll(){
 document.getElementById('agSel').addEventListener('input', agPanel);
 document.getElementById('agXlsx').addEventListener('click', ()=>downloadAgency(agSel.value));
 document.getElementById('allXlsx').addEventListener('click', downloadAll);
-document.getElementById('agMail').addEventListener('click', ()=>{
-  const txt = emailText(agSel.value), msg = document.getElementById('agMsg');
+function copyMail(txt){
+  const msg = document.getElementById('agMsg');
   const ok = ()=>{ msg.textContent='Texto do email copiado.'; setTimeout(()=>msg.textContent='',3000); };
   if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, ()=>prompt('Copie o texto:', txt));
   else { const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); ok();}catch(e){} ta.remove(); }
-});
+}
+document.getElementById('agMail').addEventListener('click', ()=>copyMail(emailText(agSel.value)));
+document.getElementById('agMailEn').addEventListener('click', ()=>copyMail(emailTextEN(agSel.value)));
 ['fOutcome','fType','fStatus','fGap','fFlag','fSearch'].forEach(id=>document.getElementById(id).addEventListener('input',indTable));
 document.getElementById('fAgency').addEventListener('input',e=>{ AG_FILTER=e.target.value; agencyTable(); indTable(); });
 document.getElementById('agencyTable').addEventListener('click',e=>{
@@ -471,8 +513,8 @@ function printAgency(a){
   fOutcome.value='';fType.value='';fStatus.value='';fSearch.value='';fGap.checked=false;fFlag.checked=false;fAgency.value=a;AG_FILTER=a;
   agencyTable(); indTable();
   const s = agencyStats().find(x=>x.a===a);
-  document.getElementById('listTitle').textContent = `Indicadores de ${a} · ${s.act} em vigor em ${CLOSED_YEAR}, ${s.gap} sem valor ${CLOSED_YEAR}`;
-  setPrintHead(`Indicadores do Quadro de Cooperação — ${a}`);
+  document.getElementById('listTitle').textContent = `Indicadores de ${agL(a)} · ${s.act} em vigor em ${CLOSED_YEAR}, ${s.gap} sem valor ${CLOSED_YEAR}`;
+  setPrintHead(`Indicadores do Quadro de Cooperação — ${agL(a)}`);
   document.body.classList.add('agency-print');
   const done = ()=>{ document.body.classList.remove('agency-print'); document.getElementById('listTitle').textContent='Lista de indicadores';
     fAgency.value=prev.ag;AG_FILTER=prev.ag;fGap.checked=prev.gap;fFlag.checked=prev.flag;fOutcome.value=prev.o;fType.value=prev.t;fStatus.value=prev.s;fSearch.value=prev.q;
