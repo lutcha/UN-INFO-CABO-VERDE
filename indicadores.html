@@ -169,7 +169,7 @@ tr.sel td{background:#E6F4FB}
 <script>
 // ───────── page configuration ─────────
 const INTERNO = false;                   // internal version: shows the responsible person named in each indicator's description
-const PRAZO = 'quinta-feira, 26 de novembro';   // deadline used in the follow-up email text
+const PRAZO = 'sexta-feira, 27 de novembro';   // deadline used in the follow-up email text
 </script>
 <script src="ind-core.js"></script>
 <script>
@@ -266,21 +266,36 @@ function agPanel(){
     ${g.efe.length?`<div class="aggrp">Indicadores de efeito <span>(dados nacionais: confirmar se já existe dado oficial; se não, indicar fonte e data prevista)</span></div>${tbl(g.efe)}`:''}
     ${g.ver.length?`<div class="aggrp">A verificar <span>(o valor existe, mas não pode ser lido como dado sem confirmação)</span></div>${tbl(g.ver)}`:''}`;
 }
+// Follow-up email, built on the DMO principles: specific recognition first, what the agency gains
+// (visibility of its results), pending items as the last step, RCO as the partner that helps.
+function agProgress(a){
+  const act = ROWS.filter(r=>r.active && r.ag.includes(a));
+  const done = act.filter(r=>!r.gap);
+  return {act: act.length, done: done.length, doneProd: done.filter(r=>r.tipo==='Produto').length};
+}
 function emailText(a){
-  const g = agGroups(a), art = ART[a]||'a', pel = art==='o'?'pelo':'pela', n = g.prod.length+g.efe.length;
+  const g = agGroups(a), art = ART[a]||'a', Art = art.toUpperCase(), pel = art==='o'?'pelo':'pela', dA = art==='o'?'do':'da';
+  const n = g.prod.length+g.efe.length, P = agProgress(a);
   const li = r => `- ${r.c==='s/ código'?'Sem código':r.c} – ${short(r.name)} (${where(r)}): ${miss(r)}`;
-  const L = [`Assunto: UN INFO – Indicadores ${agL(a)}: ${n} por completar antes do reporte anual (até ${PRAZO.split(', ')[1]})`, '',
-    'Caros colegas,', '',
-    `Estamos a fechar os indicadores do Quadro de Cooperação no UN INFO para o reporte anual à sede (IMS). Na extração de ${DATA_DATE}, ${art} ${a} tem ${n} indicador${n!==1?'es':''} sem valor de ${CLOSED_YEAR}${g.ver.length?` e ${g.ver.length} a verificar`:''}. Em anexo seguem os detalhes de cada um, com o código, o efeito e o produto, para os encontrar rapidamente no UN INFO.`, ''];
-  if(g.prod.length) L.push(`Indicadores de produto (reportados ${pel} ${a}):`, ...g.prod.map(li), '');
-  if(g.efe.length) L.push('Indicadores de efeito (dados nacionais): o valor depende de instituições nacionais, como o INE, e não da agência. Pedimos só que confirmem se já existe um dado oficial para '+CLOSED_YEAR+'. Se ainda não existir, basta indicar na narrativa a fonte e quando se espera o dado.', ...g.efe.map(li), '');
-  if(g.ver.length) L.push('A verificar (o valor existe, mas não pode ser lido como dado sem confirmação):', ...g.ver.map(li), '');
-  L.push(`O prazo é ${PRAZO}. Se já atualizou, obrigado: basta responder «feito». Se não for possível até lá, indique-me a data em que consegue. Também posso marcar 15 minutos para fazermos isto juntos no sistema.`, '', 'Com os melhores cumprimentos,');
+  const L = [`Assunto: UN INFO – Indicadores ${agL(a)}: último passo para concluir o reporte anual (até ${PRAZO.split(', ')[1]})`, '',
+    'Caros colegas,', ''];
+  L.push(P.done
+    ? `Obrigado pelo trabalho já feito: ${P.done} dos ${P.act} indicadores ${dA} ${a} em vigor em ${CLOSED_YEAR} já têm valor reportado no UN INFO (extração de ${DATA_DATE}).`
+    : `Obrigado pela colaboração no reporte dos indicadores ${dA} ${a} no UN INFO.`, '');
+  L.push(`Estes dados alimentam o reporte anual à sede (IMS) e o relatório de resultados do Quadro de Cooperação. É aí que os resultados ${dA} ${a} ganham visibilidade junto da UNCT, do Governo e dos parceiros, e passam a apoiar as decisões da equipa de país.`, '');
+  const kk = n+g.ver.length;
+  L.push(kk===1 ? 'Para concluirmos esta etapa, falta apenas um ponto:' : kk<=3 ? `Para concluirmos esta etapa, faltam apenas ${kk} pontos:` : `Para concluirmos esta etapa, faltam estes ${kk} pontos:`, '');
+  if(g.prod.length) L.push(`Indicadores de produto (resultados ${dA} ${a}):`, ...g.prod.map(li), '');
+  if(g.efe.length) L.push(`Indicadores de efeito (dados nacionais): o valor depende de instituições nacionais, como o INE, e não ${dA} ${a}. Basta confirmar se já existe dado oficial de ${CLOSED_YEAR}; se ainda não existir, uma frase na narrativa com a fonte e a data prevista é suficiente.`, ...g.efe.map(li), '');
+  if(g.ver.length) L.push('A confirmar (o valor existe, mas precisa de uma verificação rápida):', ...g.ver.map(li), '');
+  L.push(`Em anexo segue o detalhe de cada indicador, com o código, o efeito e o produto, para o encontrarem rapidamente no UN INFO. Se ajudar, marco 15 minutos para fazermos a atualização juntos no sistema.`, '');
+  L.push(`Contamos fechar esta etapa até ${PRAZO}. Se já atualizaram, obrigado: basta responder «feito».`, '');
+  L.push(`Obrigado pelo empenho dos pontos focais e das equipas: é este trabalho que permite ao UN INFO refletir os resultados que alcançamos juntos em Cabo Verde.`, '', 'Com os melhores cumprimentos,');
   return L.join('\n');
 }
-const PRAZO_EN = 'Thursday, 26 November';
+const PRAZO_EN = 'Friday, 27 November';
 function emailTextEN(a){
-  const g = agGroups(a), A = agEN(a), n = g.prod.length+g.efe.length;
+  const g = agGroups(a), A = agEN(a), n = g.prod.length+g.efe.length, P = agProgress(a), k = n+g.ver.length;
   const lower = s => s.charAt(0).toLowerCase()+s.slice(1);
   const FLAG_EN = [
     [/^Texto no campo de valor (\d{4})/, '$1 value field contains text'],
@@ -302,13 +317,19 @@ function emailTextEN(a){
   };
   const whereEN = r => r.pr ? `Output ${r.pr}` : `Outcome ${r.oc}`;
   const li = r => `- ${r.c==='s/ código'?'No code':r.c} – ${short(r.name)} (${whereEN(r)}): ${missEN(r)}`;
-  const L = [`Subject: UN INFO – ${A} indicators: ${n} to complete before the annual report (by ${PRAZO_EN.split(', ')[1]})`, '',
-    'Dear colleagues,', '',
-    `We are finalising the Cooperation Framework indicators in UN INFO for the annual reporting to headquarters (IMS). In the ${DATA_DATE} extraction, ${A} has ${n} indicator${n!==1?'s':''} without a ${CLOSED_YEAR} value${g.ver.length?` and ${g.ver.length} to check`:''}. Please find attached the details of each one, with its code, outcome and output, so it can be found quickly in UN INFO.`, ''];
-  if(g.prod.length) L.push(`Output indicators (reported by ${A}):`, ...g.prod.map(li), '');
-  if(g.efe.length) L.push(`Outcome indicators (national data): the value depends on national institutions such as the National Statistics Institute (INE), not on the agency. We only ask you to confirm whether an official ${CLOSED_YEAR} figure is already available. If not, please note in the narrative the source and when the data is expected.`, ...g.efe.map(li), '');
-  if(g.ver.length) L.push('To check (a value exists but cannot be read as data without confirmation):', ...g.ver.map(li), '');
-  L.push(`The deadline is ${PRAZO_EN}. If you have already updated, thank you: just reply "done". If this date is not possible, please let me know when you can. I can also set up 15 minutes to do it together in the system.`, '', 'Best regards,');
+  const L = [`Subject: UN INFO – ${A} indicators: last step to complete the annual reporting (by ${PRAZO_EN.split(', ')[1]})`, '',
+    'Dear colleagues,', ''];
+  L.push(P.done
+    ? `Thank you for the work already done: ${P.done} of the ${P.act} ${A} indicators active in ${CLOSED_YEAR} already have a value reported in UN INFO (extraction of ${DATA_DATE}).`
+    : `Thank you for your collaboration in reporting the ${A} indicators in UN INFO.`, '');
+  L.push(`These data feed the annual reporting to headquarters (IMS) and the Cooperation Framework results report. This is where ${A}'s results become visible to the UNCT, the Government and partners, and inform the country team's decisions.`, '');
+  L.push(k===1 ? 'To complete this stage, only one item remains:' : k<=3 ? `To complete this stage, only ${k} items remain:` : `To complete this stage, these ${k} items remain:`, '');
+  if(g.prod.length) L.push(`Output indicators (${A} results):`, ...g.prod.map(li), '');
+  if(g.efe.length) L.push(`Outcome indicators (national data): the value depends on national institutions such as the National Statistics Institute (INE), not on ${A}. Please just confirm whether an official ${CLOSED_YEAR} figure is available; if not, one sentence in the narrative with the source and expected date is enough.`, ...g.efe.map(li), '');
+  if(g.ver.length) L.push('To confirm (a value exists but needs a quick check):', ...g.ver.map(li), '');
+  L.push('Please find attached the details of each indicator, with its code, outcome and output, so it can be found quickly in UN INFO. If helpful, I can set up 15 minutes to update it together in the system.', '');
+  L.push(`We aim to close this stage by ${PRAZO_EN}. If you have already updated, thank you: just reply "done".`, '');
+  L.push('Thank you to the focal points and teams for their commitment: this work is what allows UN INFO to reflect the results we achieve together in Cabo Verde.', '', 'Best regards,');
   return L.join('\n');
 }
 // ───────── Excel export (SheetJS) ─────────
