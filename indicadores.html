@@ -123,6 +123,7 @@ tr.sel td{background:#E6F4FB}
       <button class="btn small" id="agXlsx">Excel da agência</button>
       <button class="btn small ghost" style="border:1px solid #CBD5E1" id="agMail">Copiar email (PT)</button>
       <button class="btn small ghost" style="border:1px solid #CBD5E1" id="agMailEn">Copiar email (EN)</button>
+      <button class="btn small ghost" style="border:1px solid #CBD5E1" id="agMailBi">Copiar email (PT + EN)</button>
       <button class="btn small ghost" style="border:1px solid #CBD5E1" id="allXlsx">Excel completo (todas as agências)</button>
       <span class="muted" id="agMsg"></span>
     </div>
@@ -332,6 +333,13 @@ function emailTextEN(a){
   L.push('Thank you to the focal points and teams for their commitment: this work is what allows UN INFO to reflect the results we achieve together in Cabo Verde.', '', 'Best regards,');
   return L.join('\n');
 }
+// Bilingual email: one subject in both languages, Portuguese first, then English
+function emailTextBi(a){
+  const pt = emailText(a).split('\n'), en = emailTextEN(a).split('\n');
+  const sPT = pt[0].replace(/^Assunto:\s*/,''), sEN = en[0].replace(/^Subject:\s*/,'');
+  const ptBody = pt.slice(2).filter(l=>l!=='Com os melhores cumprimentos,'), enBody = en.slice(2).map(l=>l==='Best regards,'?'Com os melhores cumprimentos / Best regards,':l);
+  return [`Assunto / Subject: ${sPT} / ${sEN}`, '', ...ptBody, '— English version below —', '', ...enBody].join('\n');
+}
 // ───────── Excel export (SheetJS) ─────────
 const COLS_ALL = [['Código',r=>r.c,11],['Tipo',r=>r.tipo,9],['Efeito',r=>r.oc,7],['Descrição do efeito',r=>r.ocDesc,45],['Produto',r=>r.pr,8],['Enunciado do produto',r=>r.prDesc,45],
   ['Indicador',r=>r.name,55],['Agências',r=>agList(r.ag),18],['Quem fornece o dado',r=>r.who,16],['Unidade',r=>r.unit,9],['Base',r=>r.base,14],['Meta 2027',r=>r.meta,14],
@@ -389,6 +397,7 @@ function copyMail(txt){
 }
 document.getElementById('agMail').addEventListener('click', ()=>copyMail(emailText(agSel.value)));
 document.getElementById('agMailEn').addEventListener('click', ()=>copyMail(emailTextEN(agSel.value)));
+document.getElementById('agMailBi').addEventListener('click', ()=>copyMail(emailTextBi(agSel.value)));
 ['fOutcome','fType','fStatus','fGap','fFlag','fSearch'].forEach(id=>document.getElementById(id).addEventListener('input',indTable));
 document.getElementById('fAgency').addEventListener('input',e=>{ AG_FILTER=e.target.value; agencyTable(); indTable(); });
 document.getElementById('agencyTable').addEventListener('click',e=>{
