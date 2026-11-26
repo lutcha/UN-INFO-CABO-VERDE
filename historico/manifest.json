@@ -100,6 +100,13 @@
         "Indicator_Export_2026-11-25.csv",
         "export_2026-11-25.csv"
       ]
+    },
+    {
+      "date": "2026-11-26",
+      "files": [
+        "Indicator_Export_2026-11-26.csv",
+        "export_2026-11-26.csv"
+      ]
     }
   ]
 }
