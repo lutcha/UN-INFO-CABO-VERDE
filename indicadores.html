@@ -42,6 +42,7 @@ tr.click{cursor:pointer}tr.click:hover td{background:#F7FAFD}
 tr.sel td{background:#E6F4FB}
 .scroll{overflow:auto;max-height:640px;border:1px solid var(--line);border-radius:10px;}
 .b{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap;}
+.b.a25-ok{background:#DCFCE7;color:#166534}.b.a25-below{background:#FFEDD5;color:#C2410C}.b.a25-na{background:#EEF1F4;color:#64748B}
 .b.ok{background:var(--okbg);color:var(--ok)}.b.on{background:var(--onbg);color:var(--on)}.b.late{background:var(--latebg);color:var(--late)}
 .b.back{background:var(--backbg);color:var(--back)}.b.rev{background:var(--revbg);color:var(--rev)}.b.na{background:var(--nabg);color:var(--na)}
 .b.miss{background:var(--backbg);color:var(--back)}
@@ -158,7 +159,8 @@ tr.sel td{background:#E6F4FB}
       <p><b>Estado:</b> Meta atingida (≥ 100%) · No caminho (50–99%) · Atrasado (0–49%) · A recuar (&lt; 0%) · Rever (escala, sim/não, ou valor não comparável com a base) · Sem dados. Num indicador qualitativo, o estado é «Meta atingida» quando o último valor é igual à meta.</p>
       <p><b>Valores tratados como «sem dados»:</b> «-», campos vazios, e o valor 0 num indicador de efeito com base igual ou superior a 5 (quase sempre um marcador de «aguarda dados»).</p>
       <p><b>Agência dos indicadores de efeito:</b> lida das siglas entre parênteses no nome do indicador, quando o campo de agência está vazio.</p>
-      <p><b>Quem fornece o dado:</b> indicadores de efeito dependem de instituições nacionais (INE quando a fonte o indica); indicadores de produto são reportados pelas agências. Esta página não mostra nomes de pessoas.</p>
+      <p><b>Meta anual 2025 (UN INFO):</b> a mesma leitura que as cores do UN INFO nos indicadores de produto — valor de 2025 face à meta de 2025 (verde: atingiu; laranja: abaixo; cinzento: sem valor ou sem meta numérica). O «Estado» mede o progresso desde a base até à meta de 2027; as duas leituras podem divergir, e uma divergência forte costuma indicar uma meta mal registada.</p>
+<p><b>Quem fornece o dado:</b> indicadores de efeito dependem de instituições nacionais (INE quando a fonte o indica); indicadores de produto são reportados pelas agências. Esta página não mostra nomes de pessoas.</p>
     </div>
   </div>
 </div>
@@ -198,6 +200,10 @@ const SLABEL = Object.fromEntries(STATUS.map(s=>[s[0],s[1]]));
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean = s => String(s??'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
 const isEmpty = s => ['','-','—','nan','none','n/a'].includes(clean(s).toLowerCase());
+// UN INFO's own colour on output indicators: 2025 value against the 2025 (annual) target.
+// Only plain numbers count; anything else (qualitative values, empty target) is "Sem avaliação".
+function strictNum(s){ s = clean(s); return /^-?\d+(?:[.,]\d+)?\s*%?$/.test(s) ? parseFloat(s.replace('%','').replace(',','.')) : null; }
+const A25 = {ok:'Atingiu meta 2025', below:'Abaixo da meta 2025', na:'Sem avaliação'};
 function num(s){
   s = clean(s); if(!s) return null;
   const m = s.match(/^[A-Za-zÀ-ú:\s]*?(-?\d+(?:[.,]\d+)?)\s*%?/);
@@ -286,6 +292,8 @@ function build(data){
       st = prog>=1?'ok':prog>=.5?'on':prog>=0?'late':'back';
     } else if(!NONCOMP[c] && clean(last).toLowerCase()===clean(r['target 2027']).toLowerCase() && !isEmpty(r['target 2027'])) st='ok';
     else st='rev';
+    const t25n = strictNum(r['target 2025']), v25n = strictNum(r['reached 2025']);
+    const a25 = (t25n==null || v25n==null || (tipo==='Efeito' && v25n===0 && bnum!=null && bnum>=5)) ? 'na' : (v25n >= t25n ? 'ok' : 'below');
     const mov = clean(r['Means of Verification']);
     const narr25 = !isEmpty(r['narrative 2025']);
     let todo = '';
@@ -296,6 +304,7 @@ function build(data){
       narr:clean(r['narrative 2026'])||clean(r['narrative 2025']),
       ocDesc:ptPart(r.outcome), prDesc:tipo==='Produto'?ptPart(r.output):'', mov:isEmpty(mov)?'':mov,
       who: tipo==='Efeito' ? 'Instituição nacional'+(/\bINE\b|Instituto Nacional de Estat/.test(mov)?' (INE)':'') : 'Agência',
+      t25: clean(r['target 2025']), a25,
       narr25, todo, action: gap || flags.length>0, resp: INTERNO ? responsaveis(r.description) : {}};
   }).sort((a,b)=>a.oc.localeCompare(b.oc)||(a.tipo===b.tipo?0:a.tipo==='Efeito'?-1:1)||a.pr.localeCompare(b.pr)||a.c.localeCompare(b.c));
 }
@@ -351,7 +360,7 @@ function filtered(){
 function indTable(){
   const list = filtered();
   document.getElementById('count').textContent = `${list.length} de ${ROWS.length} indicadores`;
-  document.getElementById('indTable').innerHTML = `<thead><tr><th>Código</th><th>Tipo</th><th>Indicador</th><th>Agências</th><th>Base</th><th>Meta 2027</th><th>Valor ${CLOSED_YEAR}</th><th>Último valor</th><th>Progresso</th><th>Estado</th><th>O que falta / verificar</th></tr></thead><tbody>
+  document.getElementById('indTable').innerHTML = `<thead><tr><th>Código</th><th>Tipo</th><th>Indicador</th><th>Agências</th><th>Base</th><th>Meta 2027</th><th>Valor ${CLOSED_YEAR}</th><th>Último valor</th><th>Progresso</th><th>Estado</th><th title="Cor que o UN INFO mostra nos indicadores de produto: valor de 2025 face à meta anual de 2025">Meta anual 2025 (UN INFO)</th><th>O que falta / verificar</th></tr></thead><tbody>
   ${list.length?list.map(r=>`<tr>
     <td><b>${esc(r.c)}</b><div class="muted">Ef. ${esc(r.oc)}${r.pr?' · '+esc(r.pr):''}</div></td>
     <td>${r.tipo}</td>
@@ -363,7 +372,8 @@ function indTable(){
     <td>${r.last?esc(r.last.slice(0,30))+` <span class="muted">(${r.ly})</span>`:'—'}</td>
     <td>${r.prog==null?'<span class="muted">—</span>':`<div style="display:flex;gap:6px;align-items:center"><div class="bar"><span style="width:${Math.max(0,Math.min(1,r.prog))*100}%"></span></div><span class="muted">${pct(r.prog)}</span></div>`}</td>
     <td><span class="b ${r.st}">${SLABEL[r.st]}</span></td>
-    <td class="todo" style="min-width:180px">${esc(r.todo)||'<span class="muted">—</span>'}</td></tr>`).join(''):`<tr><td colspan="11" class="empty">Nenhum indicador com estes filtros.</td></tr>`}</tbody>`;
+    <td><span class="b a25-${r.a25}">${A25[r.a25]}</span>${r.t25&&r.a25!=='na'?`<div class="desc">meta ${esc(r.t25.slice(0,12))}</div>`:''}</td>
+    <td class="todo" style="min-width:180px">${esc(r.todo)||'<span class="muted">—</span>'}</td></tr>`).join(''):`<tr><td colspan="12" class="empty">Nenhum indicador com estes filtros.</td></tr>`}</tbody>`;
 }
 function flagTable(){
   const list = ROWS.filter(r=>r.flags.length);
@@ -441,7 +451,7 @@ function emailTextEN(a){
 const COLS_ALL = [['Código',r=>r.c,11],['Tipo',r=>r.tipo,9],['Efeito',r=>r.oc,7],['Descrição do efeito',r=>r.ocDesc,45],['Produto',r=>r.pr,8],['Enunciado do produto',r=>r.prDesc,45],
   ['Indicador',r=>r.name,55],['Agências',r=>agList(r.ag),18],['Quem fornece o dado',r=>r.who,16],['Unidade',r=>r.unit,9],['Base',r=>r.base,14],['Meta 2027',r=>r.meta,14],
   ['Valor 2025',r=>r.v25,12],['Valor 2026',r=>r.v26,12],['Último valor',r=>r.last,14],['Ano',r=>r.ly,6],['Progresso para a meta',r=>r.prog==null?'':Math.round(r.prog*100)/100,10],
-  ['Estado',r=>SLABEL[r.st],13],['Em vigor em 2025',r=>r.active?'Sim':'Não',8],['Sem valor 2025',r=>r.gap?'Sim':'Não',8],['O que falta / verificar',r=>r.todo,45],
+  ['Estado',r=>SLABEL[r.st],13],['Meta 2025',r=>r.t25,12],['Meta anual 2025 (UN INFO)',r=>A25[r.a25],16],['Em vigor em 2025',r=>r.active?'Sim':'Não',8],['Sem valor 2025',r=>r.gap?'Sim':'Não',8],['O que falta / verificar',r=>r.todo,45],
   ['Fonte / meios de verificação (UN INFO)',r=>r.mov,45],['Narrativa mais recente (UN INFO)',r=>r.narr,60]];
 function agCols(a){ return [['Agência',()=>agL(a),16],['Código',r=>r.c,11],['Tipo',r=>r.tipo,9],['Efeito',r=>r.oc,7],['Descrição do efeito',r=>r.ocDesc,42],['Produto',r=>r.pr,8],
   ['Enunciado do produto',r=>r.prDesc,42],['Indicador',r=>r.name,50],['Quem fornece o dado',r=>r.who,16],['Último valor',r=>r.last||'—',14],['Ano',r=>r.ly,6],['O que falta',r=>r.todo,40],
